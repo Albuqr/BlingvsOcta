@@ -3,313 +3,391 @@ import plotly.graph_objects as go
 import pandas as pd
 
 st.set_page_config(
-    page_title="Bling vs Octalink · ERP Comparison",
+    page_title="Bling vs Octalink · Comparativo ERP",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DATA — Update after March 9th Octalink showcase
-# Sections marked ⚠ UNCONFIRMED need validation at the event
+# DADOS — Atualizar após evento Octalink em 9 de março
+# Seções marcadas com ⚠ PENDENTE precisam ser validadas no evento
 # ─────────────────────────────────────────────────────────────────────────────
 
 BLING_PLANS = {
     "Cobalto": {
         "price_monthly": 55, "price_annual": 45.83,
-        "users": 5, "storage": "1.5 GB", "mkt_imports": "200/mo",
+        "users": 5, "dados": "60 MB", "arquivos": "1,5 GB", "mkt_imports": "200/mês",
         "production": False, "sped": False, "pdv": False,
-        "note": "Entry tier — no production orders, no SPED"
+        "note": "Plano de entrada. Gestão de estoque, vendas multicanal, contas a pagar/receber, Conta Digital PJ. Sem ordens de produção, sem SPED."
     },
     "Mercúrio": {
         "price_monthly": 110, "price_annual": 91.66,
-        "users": 10, "storage": "3 GB", "mkt_imports": "500/mo",
+        "users": 10, "dados": "120 MB", "arquivos": "3 GB", "mkt_imports": "500/mês",
         "production": True, "sped": False, "pdv": True,
-        "note": "Production orders available from this tier"
+        "note": "Tudo do Cobalto + gestão financeira completa (emissão de boletos, conciliação bancária, DRE) + PDV com caixas individuais."
     },
     "Titânio ★": {
         "price_monthly": 185, "price_annual": 154.00,
-        "users": 15, "storage": "9 GB", "mkt_imports": "2,000/mo",
+        "users": 15, "dados": "360 MB", "arquivos": "9 GB", "mkt_imports": "2.000/mês",
         "production": True, "sped": True, "pdv": True,
-        "note": "RECOMMENDED — SPED fiscal from April 2026. April 2026: merges with Mercúrio tier."
+        "note": "RECOMENDADO — Tudo do Mercúrio + etiqueta logística automática + dashboards Meu Negócio (até 3 contas Bling) + integração com 1 maquininha POS. SPED fiscal a partir de abril/2026."
     },
     "Platina": {
         "price_monthly": 450, "price_annual": 375.00,
-        "users": 50, "storage": "30 GB", "mkt_imports": "5,000/mo",
+        "users": 50, "dados": "1,2 GB", "arquivos": "30 GB", "mkt_imports": "5.000/mês",
         "production": True, "sped": True, "pdv": True,
-        "note": "For growing operations with higher import volume"
+        "note": "Tudo do Titânio + dashboards Meu Negócio com até 5 contas Bling + integração com 3 maquininhas POS."
     },
     "Diamante": {
         "price_monthly": 650, "price_annual": 541.00,
-        "users": 80, "storage": "45 GB", "mkt_imports": "Unlimited",
+        "users": 80, "dados": "1,8 GB", "arquivos": "45 GB", "mkt_imports": "Ilimitado",
         "production": True, "sped": True, "pdv": True,
-        "note": "High-volume marketplace. Includes free Premium WhatsApp support."
+        "note": "Tudo do Platina + dashboards com até 10 contas Bling + Suporte Premium completo (telefone, chat e ticket) incluso."
     },
 }
 
-# ⚠ Start and Growth pricing sourced from conjunta.org — validate March 9th
+# Preços confirmados no site oficial do Octalink (março/2026)
 OCTALINK_PLANS = {
-    "Start ⚠": {
-        "price_monthly": 997, "price_annual": None,
-        "users": "N/A — confirm at event", "storage": "Cloud",
-        "note": "⚠ Details not publicly disclosed. Requires sales contact.",
-        "confirmed": False,
+    "Start": {
+        "price_monthly": 1597, "price_annual": None,
+        "users": "5 licenças Aurora", "storage": "500 MB backup",
+        "note": "5 licenças Aurora · 200 documentos fiscais/mês · 1 Analista Jr. · 500 MB backup, infra e armazenamento de arquivos",
+        "confirmed": True,
     },
-    "Growth ⚠": {
-        "price_monthly": 1497, "price_annual": None,
-        "users": "N/A — confirm at event", "storage": "Cloud",
-        "note": "⚠ Details not publicly disclosed. Requires sales contact.",
-        "confirmed": False,
+    "Pro ★": {
+        "price_monthly": 3797, "price_annual": None,
+        "users": "10 licenças ERP/CRM", "storage": "1 GB backup",
+        "note": "MELHOR OPÇÃO (conforme site) — 10 licenças Aurora ERP/CRM · 400 docs fiscais/mês · 1 CFO WhatsApp · Planejamento Orçamentário (Budget + Forecast) · Workflow de aprovação por alçada · Conexão API · 1 GB backup",
+        "confirmed": True,
     },
-    "Scale": {
-        "price_monthly": 2497, "price_annual": None,
-        "users": "20 ERP/CRM licenses", "storage": "2 GB backup",
-        "note": "800 fiscal docs/mo · 1 dedicated Sr. Analyst · WhatsApp CFO bot · Budget planning · Workflow approval · API connectivity",
+    "Growth": {
+        "price_monthly": 7897, "price_annual": None,
+        "users": "20 licenças ERP/CRM", "storage": "2 GB backup",
+        "note": "Controladoria estratégica + ERP + Analytics + equipe dedicada · 20 licenças Aurora ERP/CRM · 800 docs fiscais/mês · 1 Analista Sr. + 1 CFO WhatsApp · Planejamento Orçamentário · Workflow de aprovação · Conexão API · 2 GB backup",
         "confirmed": True,
     },
 }
 
-# Feature scores: 0–10, with factory weight
-# ⚠ Octalink scores based on public info + blog only — no independent reviews exist
 FEATURES = {
-    "Inventory Control":          {"Bling": 8, "Octalink": 5, "weight": 2.0,
-        "bling_detail": "Multi-warehouse, barcode, stock movements, auto-deduction from production",
-        "octa_detail": "Basic inventory in ERP Aurora — no manufacturing distinction (raw vs finished)"},
-    "NF-e / NFC-e / NFS-e":       {"Bling": 9, "Octalink": 6, "weight": 2.0,
-        "bling_detail": "Full NF-e, NFC-e, NFS-e emission across all plans. SEFAZ-integrated.",
-        "octa_detail": "NF-e present but fiscal compliance depth unclear. Not core focus."},
-    "SPED / Fiscal Compliance":   {"Bling": 7, "Octalink": 4, "weight": 1.5,
-        "bling_detail": "SPED EFD expanding to Titânio from April 2026. Bloco K partial only.",
-        "octa_detail": "Tax rule automation mentioned but Bloco K / full SPED not documented"},
-    "Production Orders / BOM":    {"Bling": 6, "Octalink": 0, "weight": 3.0,
-        "bling_detail": "Production orders + composição (BOM) from Mercúrio plan. Auto raw-material deduction. Can generate from sales orders.",
-        "octa_detail": "⚠ CONFIRMED ZERO — no production orders, no BOM, no MRP anywhere in platform"},
-    "Financial Management":       {"Bling": 7, "Octalink": 9, "weight": 1.5,
-        "bling_detail": "AP/AR, cash flow, DRE, bank reconciliation, Conta Digital with PIX/boleto",
-        "octa_detail": "Controladoria layer with AI anomaly detection, automated reconciliation, budget planning"},
-    "HR / Payroll":               {"Bling": 0, "Octalink": 0, "weight": 2.0,
-        "bling_detail": "❌ No HR capability whatsoever. Requires separate Convenia + Pontomais + accountant stack.",
-        "octa_detail": "❌ No HR capability. Same gap — separate system required regardless."},
-    "Reporting / BI":             {"Bling": 5, "Octalink": 8, "weight": 1.0,
-        "bling_detail": "Meu Negócio add-on dashboards (Titânio+). Functional but basic.",
-        "octa_detail": "Power BI integration + dedicated BI/Data Analytics squad on Scale plan"},
-    "CRM Pipeline":               {"Bling": 3, "Octalink": 8, "weight": 0.5,
-        "bling_detail": "No native CRM. Available via extensions (Agendor, Pipedrive, RD Station).",
-        "octa_detail": "Native CRM pipeline management included across all plans"},
-    "AI Features":                {"Bling": 2, "Octalink": 7, "weight": 0.5,
-        "bling_detail": "No AI features in core product. Basic automation only.",
-        "octa_detail": "AI anomaly detection, WhatsApp CFO bot (Scale), AI-assisted cash flow forecasting"},
-    "Implementation Ease":        {"Bling": 8, "Octalink": 4, "weight": 1.5,
-        "bling_detail": "30-day self-serve free trial. Extensive help center. Large user community.",
-        "octa_detail": "30-day dedicated implementation included — but no self-serve trial. Requires sales engagement."},
-    "Support Quality":            {"Bling": 5, "Octalink": 5, "weight": 1.0,
-        "bling_detail": "RA1000 designation but support declining. Up to 20-day ticket response. Premium WhatsApp R$150/mo extra.",
-        "octa_detail": "Dedicated Sr. Analyst on Scale plan. No independent reviews to verify quality."},
-    "Vendor Stability / Risk":    {"Bling": 9, "Octalink": 3, "weight": 1.5,
-        "bling_detail": "Part of LWSA (B3: LWSA3). R$1.49B revenue FY2025. 300k+ users. Largest SME ERP in Brazil.",
-        "octa_detail": "Bootstrapped. Est. 15–40 employees. Zero independent reviews. All testimonials on own website."},
-    "Pricing Accessibility":      {"Bling": 9, "Octalink": 2, "weight": 2.0,
-        "bling_detail": "R$55–650/mo. 30-day free trial. No setup fee. Cancel anytime.",
-        "octa_detail": "R$997–2,497/mo. No free trial. Requires sales contact. 5.4–13.5× Bling's entry price."},
-    "Marketplace Integration":    {"Bling": 9, "Octalink": 1, "weight": 0.5,
-        "bling_detail": "250+ integrations: Mercado Livre, Amazon, Shopee, Magalu, Shopify, Tray, WooCommerce…",
-        "octa_detail": "No marketplace integrations. Platform not designed for e-commerce/marketplace."},
+    "Controle de Estoque": {
+        "Bling": 8, "Octalink": 5, "weight": 2.0,
+        "bling_detail": "Multidepósito, leitor de código de barras, movimentações de estoque, baixa automática de insumos ao finalizar ordens de produção",
+        "octa_detail": "Estoque básico no ERP Aurora — sem distinção entre matéria-prima e produto acabado para indústria"
+    },
+    "NF-e / NFC-e / NFS-e": {
+        "Bling": 9, "Octalink": 6, "weight": 2.0,
+        "bling_detail": "Emissão completa de NF-e, NFC-e e NFS-e em todos os planos. Integrado à SEFAZ.",
+        "octa_detail": "NF-e disponível, mas profundidade da conformidade fiscal pouco documentada. Não é o foco principal da plataforma."
+    },
+    "SPED / Obrigações Fiscais": {
+        "Bling": 7, "Octalink": 4, "weight": 1.5,
+        "bling_detail": "SPED EFD expandindo para o plano Titânio a partir de abril/2026. Bloco K apenas parcial.",
+        "octa_detail": "Automação de regras fiscais mencionada, mas Bloco K e SPED completo não estão documentados"
+    },
+    "Ordens de Produção / Ficha Técnica": {
+        "Bling": 6, "Octalink": 0, "weight": 3.0,
+        "bling_detail": "Ordens de produção + composição (ficha técnica) a partir do plano Mercúrio. Baixa automática de insumos. Pode gerar OP a partir de pedidos de venda.",
+        "octa_detail": "⚠ CONFIRMADO: ZERO — nenhuma ordem de produção, nenhuma ficha técnica, nenhum MRP em qualquer parte da plataforma"
+    },
+    "Gestão Financeira": {
+        "Bling": 7, "Octalink": 9, "weight": 1.5,
+        "bling_detail": "Contas a pagar/receber, fluxo de caixa, DRE, conciliação bancária, Conta Digital com PIX/boleto",
+        "octa_detail": "Camada de Controladoria com detecção de anomalias por IA, conciliação automatizada, planejamento orçamentário"
+    },
+    "RH / Folha de Pagamento": {
+        "Bling": 0, "Octalink": 0, "weight": 2.0,
+        "bling_detail": "❌ Nenhuma funcionalidade de RH. Exige stack separado: Convenia + Pontomais + escritório contábil.",
+        "octa_detail": "❌ Nenhuma funcionalidade de RH. Mesma lacuna — sistema separado necessário independentemente da escolha."
+    },
+    "Relatórios / BI": {
+        "Bling": 5, "Octalink": 8, "weight": 1.0,
+        "bling_detail": "Add-on Meu Negócio com dashboards (Titânio+). Funcional, porém limitado comparado a ferramentas dedicadas de BI.",
+        "octa_detail": "Integração com Power BI + squad dedicado de BI/Analytics no plano Scale"
+    },
+    "CRM / Pipeline Comercial": {
+        "Bling": 3, "Octalink": 8, "weight": 0.5,
+        "bling_detail": "Sem CRM nativo. Disponível por extensões (Agendor, Pipedrive, RD Station).",
+        "octa_detail": "Gestão de pipeline de vendas nativa incluída em todos os planos"
+    },
+    "Recursos de IA": {
+        "Bling": 2, "Octalink": 7, "weight": 0.5,
+        "bling_detail": "Sem recursos de IA no produto principal. Apenas automações básicas.",
+        "octa_detail": "Detecção de anomalias por IA, bot CFO no WhatsApp (Scale), previsão de fluxo de caixa assistida por IA"
+    },
+    "Facilidade de Implantação": {
+        "Bling": 8, "Octalink": 4, "weight": 1.5,
+        "bling_detail": "Teste gratuito de 30 dias, auto-atendimento. Central de ajuda extensa. Grande comunidade de usuários.",
+        "octa_detail": "Implantação dedicada de 30 dias inclusa — mas sem teste self-service. Exige engajamento da equipe comercial."
+    },
+    "Qualidade do Suporte": {
+        "Bling": 5, "Octalink": 5, "weight": 1.0,
+        "bling_detail": "Certificação RA1000 no Reclame Aqui, mas suporte em queda desde a aquisição pela LWSA. Tempo de resposta pode chegar a 20 dias. Suporte Premium via WhatsApp custa R$150/mês extra.",
+        "octa_detail": "Analista Sr. dedicado no plano Scale. Sem avaliações independentes para validar a qualidade."
+    },
+    "Solidez / Risco do Fornecedor": {
+        "Bling": 9, "Octalink": 3, "weight": 1.5,
+        "bling_detail": "Integrante da LWSA (B3: LWSA3). Receita de R$1,49B no FY2025. 300 mil+ clientes. Maior ERP para PME do Brasil.",
+        "octa_detail": "Empresa bootstrapped. Estimativa de 15–40 colaboradores. Sem avaliações independentes. Todos os depoimentos no próprio site."
+    },
+    "Custo-Benefício": {
+        "Bling": 9, "Octalink": 2, "weight": 2.0,
+        "bling_detail": "R$55–650/mês. Teste gratuito de 30 dias. Sem taxa de implantação. Cancela quando quiser.",
+        "octa_detail": "R$997–2.497/mês. Sem teste gratuito. Exige contato comercial. De 5,4× a 13,5× o valor de entrada do Bling."
+    },
+    "Integração com Marketplaces": {
+        "Bling": 9, "Octalink": 1, "weight": 0.5,
+        "bling_detail": "250+ integrações: Mercado Livre, Amazon, Shopee, Magalu, Shopify, Tray, WooCommerce…",
+        "octa_detail": "Sem integrações com marketplaces. Plataforma não voltada para e-commerce."
+    },
 }
 
 PROS_CONS = {
     "Bling": {
         "pros": [
-            "Largest SME ERP in Brazil — 300k+ users, 20 years in market",
-            "Genuine Pequena Indústria module: production orders + BOM from R$110/mo",
-            "Full NF-e/NFC-e/NFS-e + SPED expanding to Titânio in April 2026",
-            "30-day free trial, no setup fee, cancel anytime",
-            "LWSA ecosystem: Tray, Melhor Envio, Conta Digital, embedded credit",
-            "Capterra 4.7/5 (102 reviews) · Reclame Aqui RA1000 designation",
-            "250+ marketplace integrations — best-in-class for commerce",
-            "Large community + extensive help center documentation",
+            "Maior ERP para PME do Brasil — 300 mil+ clientes, 20 anos de mercado",
+            "Módulo Pequena Indústria real: ordens de produção + ficha técnica a partir de R$110/mês",
+            "NF-e/NFC-e/NFS-e completo + SPED expandindo para o Titânio em abril/2026",
+            "Teste gratuito de 30 dias, sem taxa de setup, cancela quando quiser",
+            "Ecossistema LWSA: Tray, Melhor Envio, Conta Digital, crédito embutido",
+            "Capterra 4,7/5 (102 avaliações) · Reclame Aqui RA1000",
+            "250+ integrações com marketplaces — referência no segmento",
+            "Grande comunidade de usuários + central de ajuda completa",
         ],
         "cons": [
-            "System instability: 480 complaints on Reclame Aqui in 6 months",
-            "Recurring outages (Mondays), post-update crashes, May 2025 DB failure",
-            "Support response times up to 20 days since LWSA acquisition",
-            "Premium WhatsApp support costs R$150/mo extra (free only Diamante)",
-            "Zero HR/payroll — must budget separate system",
-            "No MRP, no routing, no quality control, no shop floor management",
-            "Production costing is manual/basic — not a proper costing engine",
-            "April 2026 pricing restructuring adds near-term uncertainty",
+            "Instabilidade de sistema: 480 reclamações no Reclame Aqui em 6 meses",
+            "Quedas recorrentes (especialmente às segundas), travamentos após atualizações, falha de banco em maio/2025",
+            "Tempo de resposta do suporte chegando a 20 dias desde a aquisição pela LWSA",
+            "Suporte Premium via WhatsApp custa R$150/mês extra (gratuito apenas no Diamante)",
+            "Sem RH/folha de pagamento — necessário contratar sistema separado",
+            "Sem MRP, sem roteiros de produção, sem controle de qualidade, sem chão de fábrica",
+            "Custeio de produção é manual e básico — não é um motor de custeio industrial",
+            "Reestruturação de planos em abril/2026 gera incerteza no curto prazo",
         ],
     },
     "Octalink": {
         "pros": [
-            "AI-powered Controladoria with anomaly detection and cash flow alerts",
-            "Native CRM pipeline (Bling has none without extension)",
-            "Power BI integration for custom dashboards and analytics",
-            "WhatsApp CFO bot: query payments, confirm receipts via chat (Scale)",
-            "Dedicated 30-day implementation with senior human analyst (Scale)",
-            "Automated bank reconciliation with intelligent categorisation",
-            "Promising for financially mature companies needing deep backoffice control",
+            "Controladoria com IA: detecção de anomalias e alertas de fluxo de caixa",
+            "CRM nativo de pipeline (Bling não tem sem extensão)",
+            "Integração com Power BI para dashboards personalizados",
+            "Bot CFO no WhatsApp: consulta pagamentos e confirma recebimentos via chat (Scale)",
+            "Implantação de 30 dias com analista sênior dedicado (Scale)",
+            "Conciliação bancária automatizada com categorização inteligente",
+            "Promissor para empresas com maturidade financeira que precisam de controle rigoroso do backoffice",
         ],
         "cons": [
-            "⚠ ZERO manufacturing production features — no orders, no BOM, no MRP",
-            "Zero independent reviews anywhere (no Capterra, G2, Reclame Aqui)",
-            "Bootstrapped company, est. 15–40 employees — significant vendor risk",
-            "All client references are testimonials on own website — unverifiable",
-            "R$997–2,497/mo with no free trial — high cost with no way to test",
-            "Start/Growth feature sets not publicly documented",
-            "No marketplace integrations whatsoever",
-            "Zero HR/payroll — same gap as Bling",
+            "⚠ ZERO funcionalidades de produção industrial — sem OP, sem ficha técnica, sem MRP",
+            "Zero avaliações independentes em qualquer plataforma (sem Capterra, G2, Reclame Aqui)",
+            "Empresa bootstrapped, estimativa de 15–40 colaboradores — risco relevante de fornecedor",
+            "Todas as referências de clientes são depoimentos no próprio site — não verificáveis",
+            "R$997–2.497/mês sem teste gratuito — custo alto sem possibilidade de testar antes",
+            "Funcionalidades dos planos Start e Growth não estão documentadas publicamente",
+            "Sem integrações com marketplaces",
+            "Sem RH/folha de pagamento — mesma lacuna do Bling",
         ],
     },
 }
 
 PAIN_POINTS = [
     {
-        "pain": "No Inventory System",
-        "priority": "Critical",
+        "pain": "Sem controle de estoque",
+        "priority": "Crítico",
         "bling_score": 8,
         "octalink_score": 5,
-        "bling_note": "Full inventory control + multi-warehouse + barcode + auto stock-deduction from production orders",
-        "octalink_note": "Basic inventory in ERP Aurora. No distinction between raw materials and finished goods.",
+        "bling_note": "Controle de estoque completo + multidepósito + código de barras + baixa automática de insumos nas ordens de produção",
+        "octalink_note": "Estoque básico no ERP Aurora. Sem distinção entre matéria-prima e produto acabado.",
     },
     {
-        "pain": "No HR / Payroll / Attendance",
-        "priority": "Critical",
+        "pain": "Sem RH / Folha / Ponto",
+        "priority": "Crítico",
         "bling_score": 0,
         "octalink_score": 0,
-        "bling_note": "No HR capability. Requires: accountant for payroll + Convenia for HR admin + Pontomais for attendance.",
-        "octalink_note": "No HR capability. Same gap — requires exactly the same separate stack regardless of which platform is chosen.",
+        "bling_note": "Nenhuma funcionalidade de RH. Necessário: escritório contábil para folha + Convenia para gestão de RH + Pontomais para controle de ponto.",
+        "octalink_note": "Nenhuma funcionalidade de RH. Mesma lacuna — exige exatamente o mesmo stack separado, independentemente da plataforma escolhida.",
     },
     {
-        "pain": "No Production Control",
-        "priority": "Critical",
+        "pain": "Sem controle de produção",
+        "priority": "Crítico",
         "bling_score": 6,
         "octalink_score": 0,
-        "bling_note": "Production orders + BOM composição from Mercúrio (R$110/mo). Auto-deducts raw materials. Can generate from sales orders.",
-        "octalink_note": "⚠ CONFIRMED ZERO: no production orders, no bill of materials, no MRP anywhere in the platform.",
+        "bling_note": "Ordens de produção + composição (ficha técnica) a partir do Mercúrio (R$110/mês). Baixa automática de insumos. Pode gerar OP a partir de pedidos de venda.",
+        "octalink_note": "⚠ CONFIRMADO ZERO: sem ordens de produção, sem ficha técnica, sem MRP em nenhuma parte da plataforma.",
     },
     {
-        "pain": "No Fiscal / NF-e System",
-        "priority": "High",
+        "pain": "Sem emissão de NF-e / sistema fiscal",
+        "priority": "Alto",
         "bling_score": 9,
         "octalink_score": 6,
-        "bling_note": "Best-in-class NF-e/NFC-e/NFS-e across all plans. SPED EFD expands to Titânio from April 2026. SEFAZ-integrated.",
-        "octalink_note": "NF-e present. Tax rule automation mentioned. Bloco K and full SPED depth not documented or confirmed.",
+        "bling_note": "Melhor da categoria em NF-e/NFC-e/NFS-e em todos os planos. SPED EFD expande para o Titânio em abril/2026. Integrado à SEFAZ.",
+        "octalink_note": "NF-e disponível. Automação de regras fiscais mencionada. Profundidade do Bloco K e SPED completo não confirmados.",
     },
     {
-        "pain": "No Structured Reporting / Data",
-        "priority": "Medium",
+        "pain": "Sem relatórios / dados estruturados",
+        "priority": "Médio",
         "bling_score": 5,
         "octalink_score": 8,
-        "bling_note": "Meu Negócio add-on dashboards on Titânio+. Functional but limited compared to dedicated BI tools.",
-        "octalink_note": "Power BI integration + dedicated BI Data Analytics squad. Octalink genuinely stronger here.",
+        "bling_note": "Add-on Meu Negócio com dashboards no Titânio+. Funcional, porém limitado frente a ferramentas dedicadas de BI.",
+        "octalink_note": "Integração com Power BI + squad dedicado de BI/Analytics. Octalink genuinamente superior neste quesito.",
     },
     {
-        "pain": "Brazilian Tax Compliance (SPED, Bloco K, Reforma)",
-        "priority": "High",
+        "pain": "Conformidade fiscal brasileira (SPED, Bloco K, Reforma)",
+        "priority": "Alto",
         "bling_score": 6,
         "octalink_score": 4,
-        "bling_note": "SPED ICMS/IPI expanding to Titânio. Bloco K partial (full mandatory for large industrials from Jan 2025). Reforma Tributária roadmap to verify.",
-        "octalink_note": "Tax compliance depth unclear. Reforma Tributária IBS/CBS roadmap not publicly documented. Requires event clarification.",
+        "bling_note": "SPED ICMS/IPI expandindo para o Titânio. Bloco K parcial (obrigatório completo para grandes indústrias desde jan/2025). Roadmap da Reforma Tributária a verificar.",
+        "octalink_note": "Profundidade da conformidade fiscal incerta. Roadmap de IBS/CBS da Reforma Tributária não documentado publicamente. Requer esclarecimento no evento.",
     },
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CALCULATED SCORES
+# PONTUAÇÕES CALCULADAS
 # ─────────────────────────────────────────────────────────────────────────────
 def weighted_score(platform):
     total_w = sum(v["weight"] for v in FEATURES.values())
     total_s = sum(v[platform] * v["weight"] for v in FEATURES.values())
     return round((total_s / (total_w * 10)) * 100)
 
-BLING_SCORE  = weighted_score("Bling")
+BLING_SCORE    = weighted_score("Bling")
 OCTALINK_SCORE = weighted_score("Octalink")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# THEME
+# TEMA — Fundo branco, navy + dourado
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
+NAVY   = "#0d2340"
+GOLD   = "#c9a040"
+GOLD_L = "#e8b84b"
+BLUE   = "#1a4a8a"
+BLUE_L = "#2563b0"
+RED    = "#b03030"
+RED_L  = "#dc4040"
+GREEN  = "#1a6640"
+MUTED  = "#5a6a80"
+LIGHT  = "#8090a8"
+BG     = "#ffffff"
+BG2    = "#f4f6f9"
+BG3    = "#eaf0f8"
+BORDER = "#d0dae8"
+
+st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=DM+Mono:wght@400;500&display=swap');
-html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
-.stApp { background: #0a0f1e; }
-[data-testid="stSidebar"] { background: #0d1428 !important; border-right: 1px solid #1e2d4a; }
-[data-testid="stSidebar"] * { color: #a8b8d0 !important; }
-h1, h2, h3 { font-family: 'Sora', sans-serif !important; color: #e8eef8 !important; }
-[data-testid="metric-container"] { background: #0d1428; border: 1px solid #1e2d4a; border-radius: 10px; padding: 16px; }
-[data-testid="stMetricValue"] { color: #f0a500 !important; font-size: 1.8rem !important; font-weight: 700 !important; }
-[data-testid="stMetricLabel"] { color: #6a8ab0 !important; }
-[data-testid="stMetricDelta"] { color: #4db8ff !important; }
-[data-testid="stTabs"] button { color: #6a8ab0 !important; font-weight: 600 !important; font-size: 0.85rem !important; }
-[data-testid="stTabs"] button[aria-selected="true"] { color: #f0a500 !important; border-bottom-color: #f0a500 !important; }
-hr { border-color: #1e2d4a !important; }
-p, li, span { color: #a8b8d0 !important; }
+html, body, [class*="css"] {{ font-family: 'Sora', sans-serif; }}
+.stApp {{ background: {BG}; }}
+[data-testid="stSidebar"] {{
+    background: {NAVY} !important;
+    border-right: 1px solid #1a3a5c;
+}}
+[data-testid="stSidebar"] * {{ color: #c8d8e8 !important; }}
+[data-testid="stSidebar"] .stRadio label {{ color: #c8d8e8 !important; }}
+[data-testid="stSidebar"] hr {{ border-color: #1a3a5c !important; }}
+h1 {{ color: {NAVY} !important; font-size: 1.9rem !important; font-weight: 700 !important; }}
+h2 {{ color: {NAVY} !important; font-size: 1.4rem !important; font-weight: 600 !important; }}
+h3 {{ color: {NAVY} !important; font-size: 1.15rem !important; font-weight: 600 !important; }}
+h4 {{ color: {NAVY} !important; font-weight: 600 !important; }}
+p, li {{ color: #2a3a4a !important; }}
+[data-testid="metric-container"] {{
+    background: {BG2};
+    border: 1px solid {BORDER};
+    border-top: 3px solid {GOLD};
+    border-radius: 8px;
+    padding: 14px;
+}}
+[data-testid="stMetricValue"] {{ color: {NAVY} !important; font-size: 1.6rem !important; font-weight: 700 !important; }}
+[data-testid="stMetricLabel"] {{ color: {MUTED} !important; font-size: 0.78rem !important; }}
+[data-testid="stMetricDelta"] {{ color: {BLUE_L} !important; }}
+[data-testid="stTabs"] button {{
+    color: {MUTED} !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    background: transparent !important;
+}}
+[data-testid="stTabs"] button[aria-selected="true"] {{
+    color: {NAVY} !important;
+    border-bottom: 2px solid {GOLD} !important;
+}}
+hr {{ border-color: {BORDER} !important; }}
+.stAlert {{ border-radius: 6px !important; }}
+[data-testid="stExpander"] {{
+    border: 1px solid {BORDER} !important;
+    border-radius: 6px !important;
+    background: {BG2} !important;
+}}
 </style>
 """, unsafe_allow_html=True)
 
-LAYOUT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,20,40,0.6)",
-              font=dict(family="Sora, sans-serif", color="#a8b8d0"))
+LAYOUT = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor=BG2,
+    font=dict(family="Sora, sans-serif", color="#2a3a4a"),
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### ⚙️ ERP Comparison")
-    st.markdown("**Bling vs Octalink**")
-    st.markdown("*Small Manufacturing Factory · Brazil*")
+    st.markdown(f"<div style='color:{GOLD_L};font-size:1.1rem;font-weight:700;margin-bottom:4px'>⚙️ Comparativo ERP</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color:#a8c8e8;font-weight:600;font-size:0.9rem'>Bling vs Octalink</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color:#6a8ab0;font-size:0.8rem;margin-top:2px'>Pequena Indústria · Brasil</div>", unsafe_allow_html=True)
     st.divider()
-    page = st.radio("Navigate", [
-        "📊  Overview",
-        "🔬  Feature Analysis",
-        "💰  Pricing",
-        "🏭  Factory Fit",
-        "📣  Pros & Cons",
-        "🏢  Company Profiles",
+    page = st.radio("Navegar", [
+        "📊  Visão Geral",
+        "🔬  Análise de Recursos",
+        "💰  Preços",
+        "🏭  Aderência à Fábrica",
+        "📣  Prós e Contras",
+        "🏢  Perfil das Empresas",
     ])
     st.divider()
-    st.markdown("**Data status**")
-    st.markdown("✅ Bling — verified Mar 2026")
-    st.markdown("🟡 Octalink pricing — ⚠ unconfirmed")
-    st.markdown("📅 Update after: **March 9th event**")
+    st.markdown(f"<div style='color:{GOLD_L};font-size:0.78rem;font-weight:700'>Status dos dados</div>", unsafe_allow_html=True)
+    st.markdown("✅ Bling — verificado mar/2026")
+    st.markdown("🟡 Octalink — ⚠ preços a confirmar")
+    st.markdown(f"📅 Atualizar após: **evento 9/3**")
     st.divider()
-    st.caption("Albuquerque Consulting · March 2026")
+    st.caption("Albuquerque Consulting · Março 2026")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: OVERVIEW
+# PÁGINA: VISÃO GERAL
 # ─────────────────────────────────────────────────────────────────────────────
-if page == "📊  Overview":
-    st.title("Bling vs Octalink · ERP Evaluation")
-    st.markdown("*Small manufacturing factory · Brazil · Full digitisation from zero · March 2026*")
-    st.divider()
+if page == "📊  Visão Geral":
+    st.markdown(f"""
+    <div style="background:{NAVY};padding:28px 32px;border-radius:10px;margin-bottom:24px">
+        <div style="color:{GOLD_L};font-size:0.75rem;font-weight:700;letter-spacing:1.5px;margin-bottom:8px">COMPARATIVO ERP · MARÇO 2026</div>
+        <div style="color:white;font-size:1.75rem;font-weight:700;line-height:1.2">Bling vs Octalink</div>
+        <div style="color:#8ab0d0;font-size:0.9rem;margin-top:6px">Pequena indústria de manufatura · Brasil · Digitalização completa do zero</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div style="background:#1c0a0a;border:1px solid #e85a5a;border-left:4px solid #e85a5a;
-                padding:14px 20px;border-radius:6px;margin-bottom:20px">
-        <span style="color:#e85a5a;font-weight:700;font-size:13px">⚠ CRITICAL RESEARCH FINDING</span><br/>
-        <span style="color:#c8a8a8;font-size:13px">
-        Octalink has <b>zero manufacturing production features</b> — no production orders, no bill of materials, 
-        no raw material tracking. It is a <b>financial backoffice platform</b>, not a manufacturing ERP. 
-        Additionally, <b>neither platform includes HR or payroll</b> — a separate system is required regardless of choice.
+    st.markdown(f"""
+    <div style="background:#fff4f4;border:1px solid {RED_L};border-left:5px solid {RED_L};
+                padding:16px 22px;border-radius:6px;margin-bottom:24px">
+        <span style="color:{RED};font-weight:700;font-size:13px">⚠ DESCOBERTA CRÍTICA DA PESQUISA</span><br/>
+        <span style="color:#4a2020;font-size:13px;line-height:1.7">
+        O Octalink <b>não possui nenhum recurso de produção industrial</b> — zero ordens de produção, 
+        zero ficha técnica, zero rastreamento de insumos. É uma <b>plataforma de backoffice financeiro</b>, 
+        não um ERP industrial. Além disso, <b>nenhuma das duas plataformas inclui RH ou folha de pagamento</b> — 
+        um sistema separado será necessário independentemente da escolha.
         </span>
     </div>
     """, unsafe_allow_html=True)
 
-    # Gauges
     c1, c2, c3 = st.columns([1, 1, 1])
 
     with c1:
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=BLING_SCORE,
-            title={"text": "Bling · Weighted Factory Fit", "font": {"color": "#e8eef8", "size": 13}},
-            number={"suffix": "/100", "font": {"color": "#4db8ff", "size": 38}},
+            title={"text": "Bling · Aderência à Fábrica", "font": {"color": NAVY, "size": 13}},
+            number={"suffix": "/100", "font": {"color": BLUE, "size": 38}},
             gauge={
-                "axis": {"range": [0, 100], "tickcolor": "#1e2d4a"},
-                "bar": {"color": "#4db8ff"},
-                "bgcolor": "#0d1428", "bordercolor": "#1e2d4a",
-                "steps": [{"range": [0, 40], "color": "#111a2a"},
-                           {"range": [40, 70], "color": "#162236"},
-                           {"range": [70, 100], "color": "#1a2e42"}],
-                "threshold": {"line": {"color": "#f0a500", "width": 2}, "thickness": 0.75, "value": 70},
+                "axis": {"range": [0, 100], "tickcolor": BORDER},
+                "bar": {"color": BLUE},
+                "bgcolor": BG2, "bordercolor": BORDER,
+                "steps": [
+                    {"range": [0, 40],  "color": "#fce8e8"},
+                    {"range": [40, 70], "color": "#fdf5e0"},
+                    {"range": [70, 100],"color": "#e8f4ee"},
+                ],
+                "threshold": {"line": {"color": GOLD, "width": 2}, "thickness": 0.75, "value": 70},
             },
         ))
         fig.update_layout(**LAYOUT, height=230, margin=dict(t=30, b=0, l=20, r=20))
@@ -319,71 +397,73 @@ if page == "📊  Overview":
         fig2 = go.Figure(go.Indicator(
             mode="gauge+number",
             value=OCTALINK_SCORE,
-            title={"text": "Octalink · Weighted Factory Fit", "font": {"color": "#e8eef8", "size": 13}},
-            number={"suffix": "/100", "font": {"color": "#f0a500", "size": 38}},
+            title={"text": "Octalink · Aderência à Fábrica", "font": {"color": NAVY, "size": 13}},
+            number={"suffix": "/100", "font": {"color": RED, "size": 38}},
             gauge={
-                "axis": {"range": [0, 100], "tickcolor": "#1e2d4a"},
-                "bar": {"color": "#f0a500"},
-                "bgcolor": "#0d1428", "bordercolor": "#1e2d4a",
-                "steps": [{"range": [0, 40], "color": "#111a2a"},
-                           {"range": [40, 70], "color": "#162236"},
-                           {"range": [70, 100], "color": "#1a2e42"}],
+                "axis": {"range": [0, 100], "tickcolor": BORDER},
+                "bar": {"color": RED},
+                "bgcolor": BG2, "bordercolor": BORDER,
+                "steps": [
+                    {"range": [0, 40],  "color": "#fce8e8"},
+                    {"range": [40, 70], "color": "#fdf5e0"},
+                    {"range": [70, 100],"color": "#e8f4ee"},
+                ],
             },
         ))
         fig2.update_layout(**LAYOUT, height=230, margin=dict(t=30, b=0, l=20, r=20))
         st.plotly_chart(fig2, use_container_width=True)
 
     with c3:
-        st.metric("Score Gap", f"Bling +{BLING_SCORE - OCTALINK_SCORE} pts", "Across 14 weighted criteria")
-        st.metric("Bling Min. Viable Plan", "R$185/mo", "Titânio — includes production + SPED")
-        st.metric("Octalink Entry Price", "R$997/mo", f"⚠ Unconfirmed · {round(997/185,1)}× Bling Titânio")
-        st.metric("HR/Payroll", "❌ Neither", "Separate system required for both")
+        st.metric("Diferença de Pontuação", f"Bling +{BLING_SCORE - OCTALINK_SCORE} pts", "Em 14 critérios ponderados")
+        st.metric("Plano Mínimo Viável — Bling", "R$185/mês", "Titânio — produção + SPED inclusos")
+        st.metric("Entrada Octalink (Start)", "R$1.597/mês", f"{round(1597/185,1)}× o Bling Titânio recomendado")
+        st.metric("RH / Folha de Pagamento", "❌ Nenhum", "Sistema separado necessário nos dois casos")
 
     st.divider()
 
     cb, co = st.columns(2)
     with cb:
-        st.markdown("""
-        <div style="background:#0d1428;border:1px solid #4db8ff;border-top:3px solid #4db8ff;padding:20px;border-radius:8px">
-          <div style="color:#4db8ff;font-weight:700;font-size:17px">Bling</div>
-          <div style="color:#3d5a78;font-size:11px;margin-bottom:12px">bling.com.br · Part of LWSA Group (BVMF: LWSA3)</div>
-          <div style="color:#a8b8d0;font-size:13px;line-height:1.8">
-            Brazil's most-used SME ERP. 300,000+ users. Founded 2005.<br/>
-            Acquired by LWSA for <b style="color:#f0a500">R$524M</b> in 2021.<br/>
-            Commerce segment revenue: <b style="color:#4db8ff">R$1.07B</b> in FY2025.<br/>
-            Has a dedicated <b>Pequena Indústria</b> module with production orders and BOM.<br/>
-            Capterra <b>4.7/5</b> · Reclame Aqui <b>RA1000</b> · 30-day free trial.
+        st.markdown(f"""
+        <div style="background:{BG2};border:1px solid {BORDER};border-top:4px solid {BLUE};padding:22px;border-radius:8px">
+          <div style="color:{NAVY};font-weight:700;font-size:1.1rem">Bling</div>
+          <div style="color:{LIGHT};font-size:0.75rem;margin-bottom:12px">bling.com.br · Grupo LWSA (B3: LWSA3)</div>
+          <div style="color:#2a3a4a;font-size:0.85rem;line-height:1.9">
+            Maior ERP para PME do Brasil. Mais de 300 mil clientes. No mercado desde 2005.<br/>
+            Adquirido pela LWSA por <b style="color:{GOLD}">R$524 milhões</b> em 2021.<br/>
+            Segmento Commerce: <b style="color:{BLUE}">R$1,07B</b> de receita no FY2025.<br/>
+            Possui módulo <b>Pequena Indústria</b> com ordens de produção e ficha técnica.<br/>
+            Capterra <b>4,7/5</b> · Reclame Aqui <b>RA1000</b> · Teste gratuito de 30 dias.
           </div>
         </div>
         """, unsafe_allow_html=True)
 
     with co:
-        st.markdown("""
-        <div style="background:#0d1428;border:1px solid #f0a500;border-top:3px solid #f0a500;padding:20px;border-radius:8px">
-          <div style="color:#f0a500;font-weight:700;font-size:17px">Octalink</div>
-          <div style="color:#3d5a78;font-size:11px;margin-bottom:12px">octalink.com.br · Octalink Tecnologia LTDA · Sumaré, SP</div>
-          <div style="color:#a8b8d0;font-size:13px;line-height:1.8">
-            Financial backoffice platform: ERP Aurora + CRM + Controladoria + BI + AI.<br/>
-            Founded Dec 2017 by Daniel & Fernando Stavale.<br/>
-            <b>Bootstrapped</b>, est. <b>15–40 employees</b>. Zero external funding.<br/>
-            <b style="color:#e85a5a">Zero independent reviews</b> anywhere — no Capterra, G2, Reclame Aqui.<br/>
-            <b style="color:#e85a5a">No production features confirmed.</b> Targets R$4M+ revenue companies.
+        st.markdown(f"""
+        <div style="background:{BG2};border:1px solid {BORDER};border-top:4px solid {GOLD};padding:22px;border-radius:8px">
+          <div style="color:{NAVY};font-weight:700;font-size:1.1rem">Octalink</div>
+          <div style="color:{LIGHT};font-size:0.75rem;margin-bottom:12px">octalink.com.br · Octalink Tecnologia LTDA · Sumaré, SP</div>
+          <div style="color:#2a3a4a;font-size:0.85rem;line-height:1.9">
+            Plataforma de backoffice financeiro: ERP Aurora + CRM + Controladoria + BI + IA.<br/>
+            Fundada em dez/2017 por Daniel e Fernando Stavale.<br/>
+            <b>Bootstrapped</b>, estimativa de <b>15–40 colaboradores</b>. Sem investimento externo.<br/>
+            <b style="color:{RED}">Zero avaliações independentes</b> — sem Capterra, G2, Reclame Aqui.<br/>
+            <b style="color:{RED}">Nenhum recurso de produção confirmado.</b> Foco em empresas com receita acima de R$4M/ano. Planos: R$1.597 (Start) · R$3.797 (Pro) · R$7.897 (Growth)/mês.
           </div>
         </div>
         """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: FEATURE ANALYSIS
+# PÁGINA: ANÁLISE DE RECURSOS
 # ─────────────────────────────────────────────────────────────────────────────
-elif page == "🔬  Feature Analysis":
-    st.title("Feature Analysis")
-    st.markdown("*14 criteria scored 0–10, weighted by factory relevance*")
+elif page == "🔬  Análise de Recursos":
+    st.title("Análise de Recursos")
+    st.markdown(f"<p style='color:{MUTED}'>14 critérios pontuados de 0 a 10, com peso por relevância para a fábrica</p>", unsafe_allow_html=True)
     st.divider()
 
-    tab1, tab2, tab3 = st.tabs(["Radar Chart", "Bar Comparison", "Detail Table"])
+    tab1, tab2, tab3 = st.tabs(["Radar", "Comparativo em Barras", "Tabela Detalhada"])
 
     features = list(FEATURES.keys())
-    bling_scores  = [FEATURES[f]["Bling"]    for f in features]
+    bling_scores    = [FEATURES[f]["Bling"]    for f in features]
     octalink_scores = [FEATURES[f]["Octalink"] for f in features]
 
     with tab1:
@@ -392,66 +472,65 @@ elif page == "🔬  Feature Analysis":
             r=bling_scores + [bling_scores[0]],
             theta=features + [features[0]],
             fill="toself", name="Bling",
-            line_color="#4db8ff", fillcolor="rgba(77,184,255,0.15)",
+            line_color=BLUE, fillcolor="rgba(26,74,138,0.15)",
         ))
         fig.add_trace(go.Scatterpolar(
             r=octalink_scores + [octalink_scores[0]],
             theta=features + [features[0]],
             fill="toself", name="Octalink",
-            line_color="#f0a500", fillcolor="rgba(240,165,0,0.12)",
+            line_color=GOLD, fillcolor="rgba(201,160,64,0.12)",
         ))
         fig.update_layout(
             **LAYOUT,
             polar=dict(
-                bgcolor="#0d1428",
-                radialaxis=dict(visible=True, range=[0, 10], color="#3d5a78",
-                                gridcolor="#1e2d4a", tickfont=dict(size=9)),
-                angularaxis=dict(color="#6a8ab0", gridcolor="#1e2d4a",
-                                 tickfont=dict(size=10)),
+                bgcolor=BG2,
+                radialaxis=dict(visible=True, range=[0, 10], color=MUTED,
+                                gridcolor=BORDER, tickfont=dict(size=9)),
+                angularaxis=dict(color=MUTED, gridcolor=BORDER, tickfont=dict(size=10)),
             ),
             showlegend=True,
-            legend=dict(font=dict(color="#a8b8d0"), bgcolor="rgba(0,0,0,0)"),
+            legend=dict(font=dict(color=NAVY), bgcolor="rgba(0,0,0,0)"),
             height=560, margin=dict(t=20, b=20, l=40, r=40),
         )
         st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
         df = pd.DataFrame({
-            "Feature": features,
+            "Recurso": features,
             "Bling": bling_scores,
             "Octalink": octalink_scores,
-            "Weight": [FEATURES[f]["weight"] for f in features],
-        }).sort_values("Weight", ascending=False)
+            "Peso": [FEATURES[f]["weight"] for f in features],
+        }).sort_values("Peso", ascending=False)
 
         fig2 = go.Figure()
         fig2.add_trace(go.Bar(
-            name="Bling", y=df["Feature"], x=df["Bling"],
-            orientation="h", marker_color="#4db8ff",
+            name="Bling", y=df["Recurso"], x=df["Bling"],
+            orientation="h", marker_color=BLUE,
             hovertemplate="<b>Bling</b> %{y}: %{x}/10<extra></extra>",
         ))
         fig2.add_trace(go.Bar(
-            name="Octalink", y=df["Feature"], x=df["Octalink"],
-            orientation="h", marker_color="#f0a500",
+            name="Octalink", y=df["Recurso"], x=df["Octalink"],
+            orientation="h", marker_color=GOLD,
             hovertemplate="<b>Octalink</b> %{y}: %{x}/10<extra></extra>",
         ))
         fig2.update_layout(
             **LAYOUT, barmode="group", height=540,
-            xaxis=dict(range=[0, 10], gridcolor="#1e2d4a", tickfont=dict(color="#6a8ab0")),
-            yaxis=dict(tickfont=dict(color="#a8b8d0", size=11)),
-            legend=dict(font=dict(color="#a8b8d0"), bgcolor="rgba(0,0,0,0)"),
+            xaxis=dict(range=[0, 10], gridcolor=BORDER, tickfont=dict(color=MUTED)),
+            yaxis=dict(tickfont=dict(color=NAVY, size=11)),
+            legend=dict(font=dict(color=NAVY), bgcolor="rgba(0,0,0,0)"),
             margin=dict(l=10, r=20, t=20, b=20),
         )
         st.plotly_chart(fig2, use_container_width=True)
 
     with tab3:
-        st.markdown("**Expand any row to see detailed notes per platform.**")
+        st.markdown(f"<p style='color:{MUTED}'>Expanda cada linha para ver as notas detalhadas por plataforma.</p>", unsafe_allow_html=True)
         for fname, fdata in sorted(FEATURES.items(), key=lambda x: -x[1]["weight"]):
             b = fdata["Bling"]
             o = fdata["Octalink"]
             w = fdata["weight"]
-            b_bar = "🟦" * b + "⬛" * (10 - b)
-            o_bar = "🟧" * o + "⬛" * (10 - o)
-            with st.expander(f"**{fname}** — Bling: {b}/10   Octalink: {o}/10   weight: {w}×"):
+            b_bar = "🟦" * b + "⬜" * (10 - b)
+            o_bar = "🟨" * o + "⬜" * (10 - o)
+            with st.expander(f"**{fname}** — Bling: {b}/10   Octalink: {o}/10   peso: {w}×"):
                 c1, c2 = st.columns(2)
                 with c1:
                     st.markdown(f"**Bling** {b_bar}")
@@ -461,280 +540,295 @@ elif page == "🔬  Feature Analysis":
                     st.caption(fdata["octa_detail"])
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: PRICING
+# PÁGINA: PREÇOS
 # ─────────────────────────────────────────────────────────────────────────────
-elif page == "💰  Pricing":
-    st.title("Pricing Comparison")
+elif page == "💰  Preços":
+    st.title("Comparativo de Preços")
     st.divider()
 
-    tab1, tab2 = st.tabs(["Bling Plans", "Octalink Plans"])
+    tab1, tab2 = st.tabs(["Planos Bling", "Planos Octalink"])
 
     with tab1:
-        st.markdown("#### Bling — Current Plans (March 2026)")
-        st.info("📅 **April 2026 change incoming:** Mercúrio merges into a new Titânio Faixa 1 tier. SPED fiscal expands down to Titânio level. Annual billing = 2 months free (pay 10, get 12).")
+        st.markdown("#### Bling — Planos Vigentes (Março 2026)")
+        st.info("📅 **Mudança em abril/2026:** O Mercúrio será incorporado ao Titânio (nova Faixa 1). SPED fiscal passa a valer para o Titânio. Cobrança anual = 2 meses grátis (paga 10, ganha 12).")
 
         for name, p in BLING_PLANS.items():
             is_rec = "★" in name
-            border = "#f0a500" if is_rec else "#1e2d4a"
-            tag_prod = "✅ Production" if p["production"] else "❌ No production"
-            tag_sped = "✅ SPED" if p["sped"] else "❌ No SPED"
-            tag_pdv  = "✅ PDV" if p["pdv"] else "❌ No PDV"
+            border = GOLD if is_rec else BORDER
+            bg     = "#fffbf0" if is_rec else BG2
+            tag_prod = "✅ Produção" if p["production"] else "❌ Sem produção"
+            tag_sped = "✅ SPED"     if p["sped"]       else "❌ Sem SPED"
+            tag_pdv  = "✅ PDV"      if p["pdv"]        else "❌ Sem PDV"
             st.markdown(f"""
-            <div style="background:#0d1428;border:1px solid {border};border-left:4px solid {border};
+            <div style="background:{bg};border:1px solid {border};border-left:4px solid {border};
                         padding:14px 18px;border-radius:6px;margin-bottom:10px">
               <div style="display:flex;justify-content:space-between;align-items:baseline">
-                <span style="color:#e8eef8;font-weight:700;font-size:15px">{name}</span>
-                <span style="color:#f0a500;font-weight:700;font-size:18px">R${p['price_monthly']}/mo</span>
+                <span style="color:{NAVY};font-weight:700;font-size:1rem">{name}</span>
+                <span style="color:{GOLD};font-weight:700;font-size:1.1rem">R${p['price_monthly']}/mês</span>
               </div>
-              <div style="color:#6a8ab0;font-size:11px;margin:4px 0 8px 0">
-                Annual: R${p['price_annual']}/mo · {p['users']} users · {p['storage']} · {p['mkt_imports']} imports
+              <div style="color:{LIGHT};font-size:0.75rem;margin:4px 0 8px 0">
+                Anual: R${p['price_annual']}/mês · {p['users']} usuários · {p['dados']} dados · {p['arquivos']} arquivos · {p['mkt_imports']} importações
               </div>
-              <div style="font-size:12px;color:#a8b8d0">
+              <div style="font-size:0.8rem;color:{MUTED}">
                 <span style="margin-right:12px">{tag_prod}</span>
                 <span style="margin-right:12px">{tag_sped}</span>
                 <span style="margin-right:12px">{tag_pdv}</span>
               </div>
-              <div style="color:#6a8ab0;font-size:11px;margin-top:6px">{p['note']}</div>
+              <div style="color:{LIGHT};font-size:0.75rem;margin-top:6px">{p['note']}</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # Bar chart
-        names = list(BLING_PLANS.keys())
+        names  = list(BLING_PLANS.keys())
         prices = [v["price_monthly"] for v in BLING_PLANS.values()]
-        colors_bar = ["#f0a500" if "★" in n else "#4db8ff" for n in names]
+        colors_bar = [GOLD if "★" in n else BLUE for n in names]
         fig = go.Figure(go.Bar(x=names, y=prices, marker_color=colors_bar,
-                               hovertemplate="%{x}: R$%{y}/mo<extra></extra>"))
+                               hovertemplate="%{x}: R$%{y}/mês<extra></extra>"))
         fig.update_layout(**LAYOUT, height=280, showlegend=False,
-                          yaxis=dict(title="R$/month", gridcolor="#1e2d4a"),
-                          xaxis=dict(tickfont=dict(color="#a8b8d0")),
+                          yaxis=dict(title="R$/mês", gridcolor=BORDER, tickfont=dict(color=MUTED)),
+                          xaxis=dict(tickfont=dict(color=NAVY)),
                           margin=dict(t=20, b=10))
         st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
-        st.markdown("#### Octalink — Plans (⚠ Partially Unconfirmed)")
-        st.warning("⚠ Start and Growth tier details sourced from conjunta.org (third-party). Pricing and features must be validated at the **March 9th product showcase**. Scale tier details verified from official blog.")
+        st.markdown("#### Octalink — Planos (⚠ Parcialmente Não Confirmados)")
+        st.warning("⚠ Detalhes dos planos Start e Growth foram obtidos via conjunta.org (terceiro). Preços e funcionalidades precisam ser validados no **showcase de 9 de março**. Plano Scale verificado a partir do blog oficial.")
 
         for name, p in OCTALINK_PLANS.items():
             confirmed = p.get("confirmed", False)
-            border = "#4db8ff" if confirmed else "#e8834a"
-            conf_label = "✅ Verified" if confirmed else "⚠ Unconfirmed"
+            border_c  = BLUE if confirmed else "#e8834a"
+            bg_c      = BG2  if confirmed else "#fff8f0"
+            conf_label = "✅ Verificado" if confirmed else "⚠ Não confirmado"
             st.markdown(f"""
-            <div style="background:#0d1428;border:1px solid {border};border-left:4px solid {border};
+            <div style="background:{bg_c};border:1px solid {border_c};border-left:4px solid {border_c};
                         padding:14px 18px;border-radius:6px;margin-bottom:10px">
               <div style="display:flex;justify-content:space-between;align-items:baseline">
-                <span style="color:#e8eef8;font-weight:700;font-size:15px">{name}</span>
-                <span style="color:#f0a500;font-weight:700;font-size:18px">R${p['price_monthly']:,}/mo</span>
+                <span style="color:{NAVY};font-weight:700;font-size:1rem">{name}</span>
+                <span style="color:{GOLD};font-weight:700;font-size:1.1rem">R${p['price_monthly']:,}/mês</span>
               </div>
-              <div style="color:#6a8ab0;font-size:11px;margin:4px 0 8px 0">
+              <div style="color:{LIGHT};font-size:0.75rem;margin:4px 0 8px 0">
                 {p['users']} · {p['storage']} · {conf_label}
               </div>
-              <div style="color:#a8b8d0;font-size:12px">{p['note']}</div>
+              <div style="color:{MUTED};font-size:0.8rem">{p['note']}</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # Side-by-side price comparison
-        st.markdown("#### Price Comparison — Bling Titânio vs Octalink Entry")
-        comp_names = ["Bling Cobalto", "Bling Mercúrio", "Bling Titânio ★", "Bling Platina", "Bling Diamante",
-                      "Octalink Start ⚠", "Octalink Growth ⚠", "Octalink Scale"]
-        comp_prices = [55, 110, 185, 450, 650, 997, 1497, 2497]
-        comp_colors = ["#4db8ff"]*5 + ["#f0a500"]*3
+        st.markdown("#### Comparativo de Preços — Bling Titânio vs Entrada Octalink")
+        comp_names  = ["Bling Cobalto", "Bling Mercúrio", "Bling Titânio ★",
+                       "Bling Platina", "Bling Diamante",
+                       "Octalink Start", "Octalink Pro ★", "Octalink Growth"]
+        comp_prices = [55, 110, 185, 450, 650, 1597, 3797, 7897]
+        comp_colors = [BLUE] * 5 + [GOLD] * 3
         fig2 = go.Figure(go.Bar(
             x=comp_names, y=comp_prices, marker_color=comp_colors,
-            hovertemplate="%{x}: R$%{y}/mo<extra></extra>",
+            hovertemplate="%{x}: R$%{y}/mês<extra></extra>",
         ))
         fig2.update_layout(**LAYOUT, height=340, showlegend=False,
-                           yaxis=dict(title="R$/month", gridcolor="#1e2d4a"),
-                           xaxis=dict(tickangle=-30, tickfont=dict(color="#a8b8d0", size=10)),
+                           yaxis=dict(title="R$/mês", gridcolor=BORDER, tickfont=dict(color=MUTED)),
+                           xaxis=dict(tickangle=-30, tickfont=dict(color=NAVY, size=10)),
                            margin=dict(t=20, b=80))
         st.plotly_chart(fig2, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: FACTORY FIT
+# PÁGINA: ADERÊNCIA À FÁBRICA
 # ─────────────────────────────────────────────────────────────────────────────
-elif page == "🏭  Factory Fit":
-    st.title("Factory Fit — Pain Point Analysis")
-    st.markdown("*Scoring each platform against the client's specific pain points*")
+elif page == "🏭  Aderência à Fábrica":
+    st.title("Aderência à Fábrica — Análise por Dor")
+    st.markdown(f"<p style='color:{MUTED}'>Pontuação de cada plataforma frente às dores específicas do cliente</p>", unsafe_allow_html=True)
     st.divider()
 
-    priority_colors = {"Critical": "#e85a5a", "High": "#f0a500", "Medium": "#8aa8c8"}
+    priority_colors = {"Crítico": RED, "Alto": GOLD, "Médio": BLUE_L}
 
     for pp in PAIN_POINTS:
-        p_col = priority_colors.get(pp["priority"], "#8aa8c8")
         b = pp["bling_score"]
         o = pp["octalink_score"]
 
-        with st.expander(f"**{pp['pain']}** — Priority: {pp['priority']}   |   Bling: {b}/10   Octalink: {o}/10"):
+        with st.expander(f"**{pp['pain']}** — Prioridade: {pp['priority']}   |   Bling: {b}/10   Octalink: {o}/10"):
             c1, c2 = st.columns(2)
             with c1:
-                pct_b = b * 10
-                bar_col_b = "#4db8ff" if b > 0 else "#e85a5a"
+                pct_b     = b * 10
+                bar_col_b = BLUE if b > 0 else RED
                 st.markdown(f"""
-                <div style="background:#0d1428;border:1px solid #1e2d4a;padding:14px;border-radius:6px">
-                  <div style="color:#4db8ff;font-weight:700;margin-bottom:8px">Bling — {b}/10</div>
-                  <div style="background:#1e2d4a;border-radius:4px;height:8px;margin-bottom:10px">
+                <div style="background:{BG2};border:1px solid {BORDER};padding:14px;border-radius:6px">
+                  <div style="color:{NAVY};font-weight:700;margin-bottom:8px">Bling — {b}/10</div>
+                  <div style="background:{BORDER};border-radius:4px;height:8px;margin-bottom:10px">
                     <div style="background:{bar_col_b};width:{pct_b}%;height:8px;border-radius:4px"></div>
                   </div>
-                  <div style="color:#8aa8c8;font-size:12px;line-height:1.6">{pp['bling_note']}</div>
+                  <div style="color:{MUTED};font-size:0.8rem;line-height:1.6">{pp['bling_note']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with c2:
-                pct_o = o * 10
-                bar_col_o = "#f0a500" if o > 0 else "#e85a5a"
+                pct_o     = o * 10
+                bar_col_o = GOLD if o > 0 else RED
                 st.markdown(f"""
-                <div style="background:#0d1428;border:1px solid #1e2d4a;padding:14px;border-radius:6px">
-                  <div style="color:#f0a500;font-weight:700;margin-bottom:8px">Octalink — {o}/10</div>
-                  <div style="background:#1e2d4a;border-radius:4px;height:8px;margin-bottom:10px">
+                <div style="background:{BG2};border:1px solid {BORDER};padding:14px;border-radius:6px">
+                  <div style="color:{NAVY};font-weight:700;margin-bottom:8px">Octalink — {o}/10</div>
+                  <div style="background:{BORDER};border-radius:4px;height:8px;margin-bottom:10px">
                     <div style="background:{bar_col_o};width:{pct_o}%;height:8px;border-radius:4px"></div>
                   </div>
-                  <div style="color:#8aa8c8;font-size:12px;line-height:1.6">{pp['octalink_note']}</div>
+                  <div style="color:{MUTED};font-size:0.8rem;line-height:1.6">{pp['octalink_note']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
     st.divider()
-
-    # Summary bar chart
-    st.markdown("#### Pain Point Scores — Side by Side")
+    st.markdown("#### Pontuação por Dor — Lado a Lado")
     pain_names  = [pp["pain"] for pp in PAIN_POINTS]
-    bling_pp    = [pp["bling_score"] for pp in PAIN_POINTS]
+    bling_pp    = [pp["bling_score"]    for pp in PAIN_POINTS]
     octalink_pp = [pp["octalink_score"] for pp in PAIN_POINTS]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(name="Bling", x=pain_names, y=bling_pp, marker_color="#4db8ff",
+    fig.add_trace(go.Bar(name="Bling",    x=pain_names, y=bling_pp,    marker_color=BLUE,
                          hovertemplate="Bling · %{x}: %{y}/10<extra></extra>"))
-    fig.add_trace(go.Bar(name="Octalink", x=pain_names, y=octalink_pp, marker_color="#f0a500",
+    fig.add_trace(go.Bar(name="Octalink", x=pain_names, y=octalink_pp, marker_color=GOLD,
                          hovertemplate="Octalink · %{x}: %{y}/10<extra></extra>"))
     fig.update_layout(**LAYOUT, barmode="group", height=340,
-                      yaxis=dict(range=[0, 10], gridcolor="#1e2d4a", title="Score /10"),
-                      xaxis=dict(tickangle=-20, tickfont=dict(size=10, color="#a8b8d0")),
-                      legend=dict(font=dict(color="#a8b8d0"), bgcolor="rgba(0,0,0,0)"),
+                      yaxis=dict(range=[0, 10], gridcolor=BORDER, title="Pontuação /10",
+                                 tickfont=dict(color=MUTED)),
+                      xaxis=dict(tickangle=-20, tickfont=dict(size=10, color=NAVY)),
+                      legend=dict(font=dict(color=NAVY), bgcolor="rgba(0,0,0,0)"),
                       margin=dict(t=20, b=80, l=10, r=10))
     st.plotly_chart(fig, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: PROS & CONS
+# PÁGINA: PRÓS E CONTRAS
 # ─────────────────────────────────────────────────────────────────────────────
-elif page == "📣  Pros & Cons":
-    st.title("Pros & Cons")
+elif page == "📣  Prós e Contras":
+    st.title("Prós e Contras")
     st.divider()
 
     cb, co = st.columns(2)
 
     with cb:
-        st.markdown("#### 🟦 Bling")
-        st.markdown("**Pros**")
+        st.markdown(f"<h3 style='color:{NAVY}'>🟦 Bling</h3>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:{GREEN};font-weight:600;font-size:0.9rem;margin-bottom:8px'>✅ Pontos Fortes</div>", unsafe_allow_html=True)
         for pro in PROS_CONS["Bling"]["pros"]:
-            st.markdown(f"✅ {pro}")
-        st.divider()
-        st.markdown("**Cons**")
+            st.markdown(f"<div style='color:#1a3a1a;font-size:0.85rem;padding:6px 0;border-bottom:1px solid {BG3}'>✅ {pro}</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:{RED};font-weight:600;font-size:0.9rem;margin-bottom:8px'>⚠ Pontos de Atenção</div>", unsafe_allow_html=True)
         for con in PROS_CONS["Bling"]["cons"]:
-            st.markdown(f"❌ {con}")
+            st.markdown(f"<div style='color:#3a1a1a;font-size:0.85rem;padding:6px 0;border-bottom:1px solid {BG3}'>⚠ {con}</div>", unsafe_allow_html=True)
 
     with co:
-        st.markdown("#### 🟧 Octalink")
-        st.markdown("**Pros**")
+        st.markdown(f"<h3 style='color:{NAVY}'>🟨 Octalink</h3>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:{GREEN};font-weight:600;font-size:0.9rem;margin-bottom:8px'>✅ Pontos Fortes</div>", unsafe_allow_html=True)
         for pro in PROS_CONS["Octalink"]["pros"]:
-            st.markdown(f"✅ {pro}")
-        st.divider()
-        st.markdown("**Cons**")
+            st.markdown(f"<div style='color:#1a3a1a;font-size:0.85rem;padding:6px 0;border-bottom:1px solid {BG3}'>✅ {pro}</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:{RED};font-weight:600;font-size:0.9rem;margin-bottom:8px'>⚠ Pontos de Atenção</div>", unsafe_allow_html=True)
         for con in PROS_CONS["Octalink"]["cons"]:
-            st.markdown(f"❌ {con}")
+            st.markdown(f"<div style='color:#3a1a1a;font-size:0.85rem;padding:6px 0;border-bottom:1px solid {BG3}'>⚠ {con}</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE: COMPANY PROFILES
+# PÁGINA: PERFIL DAS EMPRESAS
 # ─────────────────────────────────────────────────────────────────────────────
-elif page == "🏢  Company Profiles":
-    st.title("Company Profiles")
+elif page == "🏢  Perfil das Empresas":
+    st.title("Perfil das Empresas")
     st.divider()
 
     tab1, tab2 = st.tabs(["Bling / LWSA", "Octalink"])
 
     with tab1:
-        st.markdown("### Bling · LWSA Group")
+        st.markdown(f"<h3 style='color:{NAVY}'>Bling · Grupo LWSA</h3>", unsafe_allow_html=True)
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Founded", "2005")
-        c2.metric("Acquisition", "R$524.3M", "LWSA June 2021")
-        c3.metric("LWSA FY2025 Revenue", "R$1.49B", "+10.3% YoY")
-        c4.metric("Commerce Segment", "R$1.07B", "+15.3% YoY (Bling + Tray + others)")
+        c1.metric("Fundação", "2005")
+        c2.metric("Aquisição", "R$524,3M", "LWSA, junho/2021")
+        c3.metric("Receita LWSA FY2025", "R$1,49B", "+10,3% ao ano")
+        c4.metric("Segmento Commerce", "R$1,07B", "+15,3% ao ano (Bling + Tray + outros)")
 
         st.divider()
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Platform Subscribers", "206,300", "+6.8% YoY (all LWSA platforms)")
-        c2.metric("Capterra", "4.7 / 5", "102 reviews")
-        c3.metric("Reclame Aqui", "RA1000", "8.6/10 · 90.9% resolved")
-        c4.metric("RA Complaints (6mo)", "480", "Sep 2025–Feb 2026")
+        c1.metric("Assinantes (Plataformas)", "206.300", "+6,8% ao ano (todas as plataformas LWSA)")
+        c2.metric("Capterra", "4,7 / 5", "102 avaliações")
+        c3.metric("Reclame Aqui", "RA1000", "8,6/10 · 90,9% resolvidos")
+        c4.metric("Reclamações RA (6 meses)", "480", "Set/2025–Fev/2026")
 
         st.divider()
-        st.markdown("**LWSA Ecosystem — Bling Integrations**")
-        st.markdown("""
-        Bling sits inside a tightly integrated commerce stack:
-        - **Tray** — e-commerce storefronts (LWSA sister company)
-        - **Melhor Envio** — shipping logistics (LWSA, competitive rates)
-        - **Vindi** — payment processing
-        - **Conta Digital** — embedded PIX, boleto, rotating credit lines based on invoice volume
-        - **250+ marketplace connectors** — Mercado Livre, Amazon, Shopee, Magalu, Americanas, Shopify, WooCommerce…
-        """)
+        st.markdown(f"<h4 style='color:{NAVY}'>Ecossistema LWSA — Integrações do Bling</h4>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="background:{BG2};border:1px solid {BORDER};padding:18px 22px;border-radius:8px;
+                    font-size:0.85rem;color:#2a3a4a;line-height:1.9">
+        O Bling está inserido em um ecossistema de comércio com integração nativa:<br/>
+        • <b>Tray</b> — lojas virtuais (empresa irmã dentro da LWSA)<br/>
+        • <b>Melhor Envio</b> — logística de frete com tarifas competitivas (LWSA)<br/>
+        • <b>Vindi</b> — processamento de pagamentos<br/>
+        • <b>Conta Digital</b> — PIX, boleto e linhas de crédito rotativo baseadas no volume de NFs emitidas<br/>
+        • <b>250+ conectores de marketplace</b> — Mercado Livre, Amazon, Shopee, Magalu, Americanas, Shopify, WooCommerce…
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
-        st.markdown("**Top Reclame Aqui Complaint Categories**")
-        complaint_cats = ["System instability / outages", "Support response time", "Post-update crashes",
-                          "Price increase (Apr 2025)", "Marketplace sync failures", "Scalability limits"]
+        st.markdown(f"<h4 style='color:{NAVY}'>Principais Categorias de Reclamação no Reclame Aqui</h4>", unsafe_allow_html=True)
+        complaint_cats = [
+            "Instabilidade / quedas",
+            "Demora no atendimento",
+            "Travamentos pós-update",
+            "Reajuste abr/2025",
+            "Falhas marketplace",
+            "Limitações de escala",
+        ]
         complaint_vol = [34, 24, 18, 12, 8, 4]
-        fig = go.Figure(go.Bar(x=complaint_cats, y=complaint_vol, marker_color="#e85a5a",
-                               hovertemplate="%{x}: ~%{y}% of complaints<extra></extra>"))
-        fig.update_layout(**LAYOUT, height=280, showlegend=False,
-                          yaxis=dict(title="% of complaints", gridcolor="#1e2d4a"),
-                          xaxis=dict(tickangle=-20, tickfont=dict(size=10, color="#a8b8d0")),
-                          margin=dict(t=10, b=80))
+        fig = go.Figure(go.Bar(
+            x=complaint_cats, y=complaint_vol, marker_color=RED,
+            hovertemplate="%{x}: ~%{y}% das reclamações<extra></extra>",
+        ))
+        fig.update_layout(
+            **LAYOUT, height=290, showlegend=False,
+            yaxis=dict(title="% das reclamações", gridcolor=BORDER, tickfont=dict(color=MUTED)),
+            xaxis=dict(tickangle=-20, tickfont=dict(size=10, color=NAVY)),
+            margin=dict(t=10, b=80),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
-        st.markdown("### Octalink · Octalink Tecnologia LTDA")
+        st.markdown(f"<h3 style='color:{NAVY}'>Octalink · Octalink Tecnologia LTDA</h3>", unsafe_allow_html=True)
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Founded", "Dec 2017", "Sumaré, SP")
-        c2.metric("Funding", "R$0", "Bootstrapped — zero external investment")
-        c3.metric("Team Size", "15–40 est.", "Glassdoor + ZoomInfo estimate")
-        c4.metric("Independent Reviews", "ZERO", "No Capterra, G2, Reclame Aqui")
+        c1.metric("Fundação", "Dez/2017", "Sumaré, SP")
+        c2.metric("Investimento externo", "R$0", "Bootstrapped — sem captação")
+        c3.metric("Tamanho estimado", "15–40 func.", "Glassdoor + ZoomInfo")
+        c4.metric("Avaliações independentes", "ZERO", "Sem Capterra, G2, Reclame Aqui")
 
         st.divider()
-        st.markdown("**Founders**")
-        st.markdown("""
-        - **Daniel Stavale** — CEO
-        - **Fernando Stavale** — CDO / Co-founder
-        - Sumaré, SP (Campinas metropolitan area)
-        """)
+        st.markdown(f"<h4 style='color:{NAVY}'>Fundadores</h4>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="background:{BG2};border:1px solid {BORDER};padding:14px 18px;border-radius:6px;
+                    font-size:0.85rem;color:#2a3a4a">
+        • <b>Daniel Stavale</b> — CEO<br/>
+        • <b>Fernando Stavale</b> — CDO / Co-fundador<br/>
+        • Sumaré, SP (Região Metropolitana de Campinas)
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
-        st.markdown("**Platform Architecture**")
+        st.markdown(f"<h4 style='color:{NAVY}'>Arquitetura da Plataforma</h4>", unsafe_allow_html=True)
         cols = st.columns(4)
         modules = [
-            ("ERP Aurora", "#f0a500", "Proprietary ERP — inventory, NF-e, financial management. No production features."),
-            ("CRM", "#4db8ff", "Native CRM pipeline management. Included across all plans."),
-            ("Controladoria + AI", "#8aa8c8", "AI anomaly detection, automated reconciliation, budget planning, workflow approvals."),
-            ("BI / Analytics", "#e8834a", "Power BI integration + dedicated Data Analytics squad on Scale plan."),
+            ("ERP Aurora",           BLUE,    "ERP proprietário — estoque, NF-e, gestão financeira. Sem funcionalidades de produção industrial."),
+            ("CRM",                  GOLD,    "Gestão de pipeline de vendas nativa. Disponível em todos os planos."),
+            ("Controladoria + IA",   NAVY,    "Detecção de anomalias por IA, conciliação automatizada, planejamento orçamentário, aprovações por fluxo."),
+            ("BI / Analytics",       "#b05a20","Integração com Power BI + squad dedicado de Analytics no plano Scale."),
         ]
         for col, (mod, col_hex, desc) in zip(cols, modules):
             with col:
                 st.markdown(f"""
-                <div style="background:#0d1428;border:1px solid {col_hex};border-top:3px solid {col_hex};
-                            padding:12px;border-radius:6px;text-align:center">
-                  <div style="color:{col_hex};font-weight:700;font-size:13px;margin-bottom:6px">{mod}</div>
-                  <div style="color:#6a8ab0;font-size:11px;line-height:1.5">{desc}</div>
+                <div style="background:{BG2};border:1px solid {BORDER};border-top:3px solid {col_hex};
+                            padding:14px;border-radius:6px;text-align:center">
+                  <div style="color:{col_hex};font-weight:700;font-size:0.85rem;margin-bottom:6px">{mod}</div>
+                  <div style="color:{MUTED};font-size:0.78rem;line-height:1.5">{desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.divider()
-        st.markdown("**Known Integrations**")
-        st.markdown("SOC (occupational health) · Power BI · WhatsApp Business API · PIX/boleto banking · NF-e SEFAZ")
+        st.markdown(f"<h4 style='color:{NAVY}'>Integrações Conhecidas</h4>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:{MUTED};font-size:0.85rem'>SOC (medicina do trabalho) · Power BI · WhatsApp Business API · PIX/boleto bancário · NF-e SEFAZ</p>", unsafe_allow_html=True)
 
         st.divider()
         st.warning("""
-        **⚠ Data validation required at March 9th event:**
-        - Start and Growth plan pricing and feature details
-        - Whether any production/manufacturing features exist
-        - Implementation timeline and onboarding process detail
-        - Named client references beyond website testimonials
-        - Bloco K / SPED fiscal compliance depth
-        - Reforma Tributária (IBS/CBS) roadmap
+        **⚠ Validação necessária no evento de 9/3:**
+        - Preços e funcionalidades dos planos Start e Growth
+        - Existência de algum recurso de produção/manufatura
+        - Prazo e processo detalhado de implantação
+        - Referências nominais de clientes além dos depoimentos do site
+        - Profundidade da conformidade com Bloco K / SPED
+        - Roadmap para Reforma Tributária (IBS/CBS)
         """)
