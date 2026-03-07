@@ -4,7 +4,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 EXPOSE 8505
-HEALTHCHECK CMD curl --fail http://localhost:8505/_stcore/health
-
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl --fail http://localhost:8505/_stcore/health || exit 1
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8505", "--server.address=0.0.0.0"]
-
