@@ -210,9 +210,9 @@ EVENT_INTEL = [
 ]
 
 def weighted_score(platform):
-    total_w = sum(v["weight"] for v in FEATURES.values())
-    total_s = sum(v[platform] * v["weight"] for v in FEATURES.values())
-    return round((total_s / (total_w * 10)) * 100)
+    tw = sum(float(v["weight"]) for v in FEATURES.values())
+    total_s = sum(v[platform] * float(v["weight"]) for v in FEATURES.values())
+    return round((total_s / (tw * 10)) * 100)
 
 BLING_SCORE    = weighted_score("Bling")
 OCTALINK_SCORE = weighted_score("Octalink")
@@ -710,7 +710,8 @@ elif page == "🔍  Inteligência do Evento":
         ev_features = list(FEATURES.keys())
         bling_scores = [FEATURES[f]["Bling"] for f in ev_features]
         octa_post    = [FEATURES[f]["Octalink"] for f in ev_features]
-        octa_pre     = [FEATURES_PRE_EVENT[f]["Octalink_pre"] for f in ev_features]
+        octa_pre       = [FEATURES_PRE_EVENT[f]["Octalink_pre"] for f in ev_features]
+        ev_weights_sum = sum(float(FEATURES[f]["weight"]) for f in ev_features)
 
         col1, col2 = st.columns(2)
 
@@ -730,7 +731,7 @@ elif page == "🔍  Inteligência do Evento":
                 line_color=RED, fillcolor="rgba(176,48,48,0.12)",
                 line=dict(color=RED, width=2, dash="dot"),
             ))
-            pre_score = round(sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_pre)) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+            pre_score = round(sum(o * float(FEATURES[f]["weight"]) for f, o in zip(ev_features, octa_pre)) / ev_weights_sum * 10)
             fig_pre.update_layout(
                 **LAYOUT,
                 polar=dict(bgcolor=BG2, radialaxis=dict(visible=True, range=[0,10], color=MUTED, gridcolor=BORDER, tickfont=dict(size=9)), angularaxis=dict(color=MUTED, gridcolor=BORDER, tickfont=dict(size=9))),
@@ -756,7 +757,7 @@ elif page == "🔍  Inteligência do Evento":
                 fill="toself", name="Octalink (confirmado in-person)",
                 line_color=GOLD, fillcolor="rgba(201,160,64,0.15)",
             ))
-            post_score = round(sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_post)) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+            post_score = round(sum(o * float(FEATURES[f]["weight"]) for f, o in zip(ev_features, octa_post)) / ev_weights_sum * 10)
             fig_post.update_layout(
                 **LAYOUT,
                 polar=dict(bgcolor=BG2, radialaxis=dict(visible=True, range=[0,10], color=MUTED, gridcolor=BORDER, tickfont=dict(size=9)), angularaxis=dict(color=MUTED, gridcolor=BORDER, tickfont=dict(size=9))),
@@ -793,14 +794,13 @@ elif page == "🔍  Inteligência do Evento":
         st.plotly_chart(fig_delta, use_container_width=True)
 
         # Wingspan metric
-        pre_area  = sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_pre))
-        post_area = sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_post))
+        pre_area  = sum(o * float(FEATURES[f]["weight"]) for f, o in zip(ev_features, octa_pre))
+        post_area = sum(o * float(FEATURES[f]["weight"]) for f, o in zip(ev_features, octa_post))
         wingspan  = round((post_area - pre_area) / pre_area * 100, 1)
-        total_w_ev = sum(FEATURES[f]["weight"] for f in ev_features)
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Score Octalink pré-evento",  f"{round(pre_area/total_w_ev*10)}%",  "Baseado em fontes públicas")
-        c2.metric("Score Octalink pós-evento",  f"{round(post_area/total_w_ev*10)}%", "Confirmado in-person")
+        c1.metric("Score Octalink pré-evento",  f"{round(pre_area / ev_weights_sum * 10)}%",  "Baseado em fontes públicas")
+        c2.metric("Score Octalink pós-evento",  f"{round(post_area / ev_weights_sum * 10)}%", "Confirmado in-person")
         c3.metric("Wingspan — expansão real",   f"+{wingspan}%",   "Funcionalidade não divulgada")
         c4.metric("Critérios que mudaram",       f"{sum(1 for d in deltas if d != 0)}/{len(ev_features)}", "Critérios com nova pontuação")
 
@@ -844,8 +844,8 @@ elif page == "🔍  Inteligência do Evento":
 
         st.divider()
         st.markdown("#### Implicação para Decisões de Compra")
-        pre_pct  = round(sum(FEATURES_PRE_EVENT[f]["Octalink_pre"] * FEATURES[f]["weight"] for f in ev_features) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
-        post_pct = round(sum(FEATURES[f]["Octalink"] * FEATURES[f]["weight"] for f in ev_features) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+        pre_pct  = round(sum(FEATURES_PRE_EVENT[f]["Octalink_pre"] * float(FEATURES[f]["weight"]) for f in ev_features) / ev_weights_sum * 10)
+        post_pct = round(sum(float(FEATURES[f]["Octalink"]) * float(FEATURES[f]["weight"]) for f in ev_features) / ev_weights_sum * 10)
         st.markdown(f"""
         <div style="background:#fff8f0;border:1px solid {GOLD};border-left:5px solid {GOLD};padding:18px 22px;border-radius:6px">
           <span style="color:#7a5010;font-weight:700">O que isso significa para quem avalia o Octalink com base em pesquisa online:</span><br/><br/>
