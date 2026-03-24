@@ -81,6 +81,134 @@ RECOMMENDATION_REASONS = [
     ("Revisita em 12-18 meses", "Gatilhos: faturamento justifica R$1.597/mês, ferramenta de IA de setup estável (saindo do beta abr/2026), suporte do Octalink absorveu crescimento, contador engajado disponível."),
 ]
 
+# Scores before the event — based on website research only
+# Used for dual radar comparison to show "wingspan" of hidden features
+FEATURES_PRE_EVENT = {
+    "Controle de Estoque":           {"Octalink_pre": 5},
+    "NF-e / NFS-e / CT-e":          {"Octalink_pre": 6},
+    "SPED / Obrigações Fiscais":     {"Octalink_pre": 4},
+    "Ordens de Produção / BOM":      {"Octalink_pre": 0},
+    "Gestão Financeira / DRE":       {"Octalink_pre": 9},
+    "Controladoria / BI":            {"Octalink_pre": 8},
+    "RH / Folha de Pagamento":       {"Octalink_pre": 0},
+    "CRM / Pipeline Comercial":      {"Octalink_pre": 8},
+    "Recursos de IA":                {"Octalink_pre": 4},
+    "Conciliação Bancária":          {"Octalink_pre": 5},
+    "Facilidade de Implantação":     {"Octalink_pre": 4},
+    "Qualidade do Suporte":          {"Octalink_pre": 5},
+    "Solidez / Risco do Fornecedor": {"Octalink_pre": 3},
+    "Custo-Benefício":               {"Octalink_pre": 2},
+    "Integração Marketplaces":       {"Octalink_pre": 1},
+}
+
+EVENT_INTEL = [
+    {
+        "category": "Módulo Industrial",
+        "feature": "Almoxarifado com QR Code por endereçamento",
+        "detail": "QR Code não apenas por item, mas por localização física: estante, nível, altura, sala. Workflow completo: separação → qualidade → estoque. Transferência entre almoxarifados rastreada.",
+        "market_impact": "A maioria dos ERPs para PME oferece código de barras por item. QR Code por endereçamento é funcionalidade típica de WMS (Warehouse Management System) de médio/grande porte.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Módulo Industrial",
+        "feature": "Fator de conversão de unidades entre fornecedores",
+        "detail": "Normalização automática de unidades de medida (kg, unidade, caixa) entre fornecedores diferentes. Uma vez configurado, todas as NFs futuras daquele fornecedor são normalizadas automaticamente.",
+        "market_impact": "Elimina um dos maiores pontos de atrito no recebimento de materiais em indústrias que compram do mesmo produto em unidades diferentes de fornecedores distintos.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Módulo Industrial",
+        "feature": "Monitoramento automático de NF-e na SEFAZ",
+        "detail": "O sistema varre a SEFAZ automaticamente e captura todas as NFs emitidas contra o CNPJ do cliente. O usuário não precisa solicitar — elas aparecem automaticamente na fila para lançamento manual.",
+        "market_impact": "Elimina o risco de perder NFs de entrada. Funcionalidade presente em sistemas de médio porte (ex: TOTVS). Incomum em ERPs para PME nesta faixa de preço.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Módulo Industrial",
+        "feature": "Rastreabilidade de lotes com data de validade e APC",
+        "detail": "Rastreamento completo de lote: data de validade, data do lote, código APC. Rastreabilidade ao longo de toda a cadeia de produção — do insumo ao produto acabado.",
+        "market_impact": "Crítico para indústrias alimentícias, farmacêuticas e de cosméticos. Exigência regulatória em vários segmentos. Inexistente em ERPs de entrada.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Módulo Industrial",
+        "feature": "De-para de código de fornecedor para código interno",
+        "detail": "Mapeamento de código do produto do fornecedor para o código interno da empresa. Feito uma vez, automático em todas as NFs futuras daquele fornecedor.",
+        "market_impact": "Elimina horas de lançamento manual e erros de identificação de produto. Funcionalidade padrão em ERPs enterprise, rara em ferramentas para PME.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Fiscal e Financeiro",
+        "feature": "IBS/CBS (Reforma Tributária 2027) já implementado",
+        "detail": "O sistema já tem IBS e CBS implementados. O CEO alertou: a partir de janeiro/2027, empresas no Simples Nacional deixarão de gerar crédito para quem as contrata, podendo ficar 20-30% mais caras que concorrentes. O Octalink já está preparado.",
+        "market_impact": "Nenhum ERP para PME no Brasil confirmou publicamente a implementação completa de IBS/CBS. O Octalink está à frente de concorrentes como Bling, Omie e Conta Azul neste quesito.",
+        "online_coverage": "menção parcial no site, sem detalhamento",
+    },
+    {
+        "category": "Fiscal e Financeiro",
+        "feature": "Open Finance via API regulamentada do Banco Central",
+        "detail": "Conexão bancária via API oficial do Banco Central — não screen-scraping. Itaú Empresas confirmado. A conciliação bancária gera contabilização automática de baixa de passivos e ativos.",
+        "market_impact": "Screen-scraping é frágil e sujeito a quebras. API regulamentada é mais segura e estável. A diferença é relevante para dados financeiros em produção.",
+        "online_coverage": "mencionado superficialmente, sem detalhar que é API Banco Central",
+    },
+    {
+        "category": "Fiscal e Financeiro",
+        "feature": "Regras fiscais por operação com CFOP automático por estado",
+        "detail": "Cada operação tem uma regra fiscal configurada: CST, CFOP calculado automaticamente por estado de origem/destino, retenções de ISS, PIS/COFINS, ICMS, IPI, INSS, CIDE, Difal, II — todos tratados na emissão da nota.",
+        "market_impact": "A complexidade fiscal brasileira é uma barreira real para PMEs. Automação completa de CFOP por estado é funcionalidade que ERPs enterprise cobram caro. O Octalink entrega isso a partir de R$1.597/mês.",
+        "online_coverage": "mencionado genericamente como 'regras fiscais', sem detalhar o escopo",
+    },
+    {
+        "category": "Fiscal e Financeiro",
+        "feature": "Devedor Contumaz — monitoramento e alertas",
+        "detail": "O sistema monitora e alerta sobre a Lei do Devedor Contumaz (vigente desde jan/2025). Quem acumula 4-6 apurações sem pagar é caracterizado — fica impedido de participar de licitações e de parcelamentos governamentais.",
+        "market_impact": "Lei nova, pouco conhecida pelas PMEs. Nenhum ERP para PME tem essa funcionalidade documentada publicamente. Octalink já está rastreando ativamente.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Inteligência e IA",
+        "feature": "IA para criação de regras contábeis em etapas (beta)",
+        "detail": "Ferramenta em beta (lançamento abr/2026): lê um plano de contas em Excel ou PDF incompleto, identifica hierarquia, sugere regras de contabilização de pagamentos e recebimentos com confirmação humana em cada etapa. Reduz o setup de 90 dias.",
+        "market_impact": "O setup de 90 dias é a principal barreira de adoção de ERPs contábeis. Nenhum concorrente na faixa de preço tem IA de parametrização contábil. Diferencial competitivo real para escritórios de contabilidade que queiram escalar.",
+        "online_coverage": "zero — em beta, não publicado",
+    },
+    {
+        "category": "Inteligência e IA",
+        "feature": "Data lake proprietário + dashboards por vibe coding (Lovable/Lobb)",
+        "detail": "Octalink tem data lake proprietário. Usa Lovable (Lobb) para criar dashboards customizados sobre ele via prompts em linguagem natural — sem desenvolvimento tradicional. Permite customizações rápidas por cliente.",
+        "market_impact": "Customização de dashboards em ERPs normalmente custa caro e demora meses. Octalink entrega isso com time de dev reduzido à metade e 20× mais produtividade. Representa flexibilidade que concorrentes não têm.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Modelo de Negócio",
+        "feature": "Maior ticket vem de empresas que já têm SAP/TOTVS",
+        "detail": "O maior ticket médio do Octalink NÃO vem de clientes ERP — vem de empresas grandes que já usam SAP, TOTVS Proteus ou JD Edwards e compram apenas a camada de controladoria/BI do Octalink. Ex: empresa de R$2B com 3.500 funcionários, Amadeus (multinacional espanhola).",
+        "market_impact": "Isso revela que o produto mais maduro do Octalink é a controladoria, não o ERP. E que ele compete em um segmento de mercado completamente diferente do que é apresentado publicamente — o mercado enterprise de controladoria, não o de ERPs para PME.",
+        "online_coverage": "zero — posicionamento apresentado publicamente é focado em PME",
+    },
+    {
+        "category": "Modelo de Negócio",
+        "feature": "80% dos clientes ERP também compram serviço gerenciado",
+        "detail": "O CEO declarou que 8 em cada 10 clientes que fecham o ERP acabam contratando também o serviço gerenciado (financeiro, contábil ou fiscal). O preço do plano (R$1.597–7.897/mês) é o piso — o custo total de propriedade é sistematicamente maior.",
+        "market_impact": "O pricing publicado subestima o custo real de adoção. Para comparações de custo-benefício com Bling ou outros ERPs, o custo real do Octalink deve incluir a camada de serviço — que não tem preço publicado.",
+        "online_coverage": "zero — pricing do site não menciona isso",
+    },
+    {
+        "category": "Modelo de Negócio",
+        "feature": "Modelo de parceria com escritórios de contabilidade como canal de escala",
+        "detail": "O canal de crescimento principal do Octalink são escritórios de contabilidade que criam templates padronizados e replicam para dezenas de clientes simultaneamente. Ex: maior escritório de Goiânia (contabilidade de Gusttavo Lima, Jorge & Mateus) onboardou 11 clientes em uma semana.",
+        "market_impact": "Este modelo de distribuição via contadores é invisível para o cliente final e não está documentado no site. Explica como uma empresa de 15-40 pessoas pode crescer 20%/ano — não é força de vendas direta, é alavancagem via parceiros.",
+        "online_coverage": "zero",
+    },
+    {
+        "category": "Contexto Estratégico",
+        "feature": "FINEP: R$10M aprovado — empresa financia com dinheiro público",
+        "detail": "O Octalink aprovou R$10M em edital FINEP a fundo perdido. Eles usam os mesmos instrumentos de crédito barato que ensinam os clientes a usar. O grant exige prestação de contas por 5 anos e auditoria aberta.",
+        "market_impact": "Acesso a capital barato (6-8% ao ano via FINEP vs 2,5%/mês em bancos) financia P&D sem diluição. Permite investir em IA, ERP industrial e vibe coding sem precisar de investidor. Explica como uma empresa bootstrap pode inovar neste ritmo.",
+        "online_coverage": "zero",
+    },
+]
+
 def weighted_score(platform):
     total_w = sum(v["weight"] for v in FEATURES.values())
     total_s = sum(v[platform] * v["weight"] for v in FEATURES.values())
@@ -121,7 +249,7 @@ with st.sidebar:
     st.markdown(f"<div style='color:#a8c8e8;font-weight:600;font-size:0.9rem'>Bling vs Octalink</div>", unsafe_allow_html=True)
     st.markdown(f"<div style='color:#6a8ab0;font-size:0.8rem;margin-top:2px'>Pequena Indústria · Brasil</div>", unsafe_allow_html=True)
     st.divider()
-    page = st.radio("Navegar", ["📊  Visão Geral", "🏭  Módulo Industrial", "🔬  Análise de Recursos", "💰  Preços", "📈  Aderência à Fábrica", "📣  Prós e Contras", "🧭  Recomendação", "🏢  Perfil das Empresas"])
+    page = st.radio("Navegar", ["📊  Visão Geral", "🏭  Módulo Industrial", "🔬  Análise de Recursos", "💰  Preços", "📈  Aderência à Fábrica", "📣  Prós e Contras", "🧭  Recomendação", "🔍  Inteligência do Evento", "🏢  Perfil das Empresas"])
     st.divider()
     st.markdown(f"<div style='color:{GOLD_L};font-size:0.78rem;font-weight:700'>Status dos dados</div>", unsafe_allow_html=True)
     st.markdown("✅ Bling — verificado mar/2026")
@@ -512,6 +640,224 @@ elif page == "🧭  Recomendação":
           <div style="display:flex;justify-content:space-between"><span style="color:{NAVY};font-weight:600">{name}</span><span style="color:{MUTED};font-size:0.85rem">{price}</span></div>
           <div style="color:{MUTED};font-size:0.82rem;margin-top:4px">{desc}</div>
         </div>""", unsafe_allow_html=True)
+
+# ── INTELIGÊNCIA DO EVENTO ────────────────────────────────────────────────────
+elif page == "🔍  Inteligência do Evento":
+    st.title("Inteligência do Evento")
+    st.markdown(f"<p style='color:{MUTED}'>Funcionalidades e dados confirmados exclusivamente na apresentação oficial do Octalink em março/2026. Nenhuma destas informações está disponível no site, blog ou materiais públicos da empresa.</p>", unsafe_allow_html=True)
+    st.divider()
+
+    # ── HEADER BANNER ────────────────────────────────────────────────────────
+    total_intel = len(EVENT_INTEL)
+    zero_online = sum(1 for i in EVENT_INTEL if i["online_coverage"] == "zero")
+    st.markdown(f"""
+    <div style="background:{NAVY};padding:24px 28px;border-radius:10px;margin-bottom:24px;display:flex;gap:32px;align-items:center">
+      <div>
+        <div style="color:{GOLD_L};font-size:0.75rem;font-weight:700;letter-spacing:1.2px">INTEL EXCLUSIVA DO EVENTO</div>
+        <div style="color:white;font-size:2rem;font-weight:700">{total_intel} descobertas</div>
+        <div style="color:#8ab0d0;font-size:0.85rem">coletadas in-person na apresentação oficial · março/2026</div>
+      </div>
+      <div style="border-left:1px solid #1a3a5c;padding-left:32px">
+        <div style="color:{GOLD_L};font-size:0.75rem;font-weight:700;letter-spacing:1.2px">COM ZERO COBERTURA ONLINE</div>
+        <div style="color:white;font-size:2rem;font-weight:700">{zero_online} funcionalidades</div>
+        <div style="color:#8ab0d0;font-size:0.85rem">inexistentes no site, blog ou materiais públicos</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab1, tab2, tab3 = st.tabs(["📡 Intel Exclusiva", "📡 Radar: Antes vs Depois", "📊 Análise de Cobertura"])
+
+    # ── TAB 1: INTEL CARDS ────────────────────────────────────────────────────
+    with tab1:
+        categories = list(dict.fromkeys(i["category"] for i in EVENT_INTEL))
+        cat_colors = {
+            "Módulo Industrial":      BLUE,
+            "Fiscal e Financeiro":    GOLD,
+            "Inteligência e IA":      "#9b8ab5",
+            "Modelo de Negócio":      "#2a7a4a",
+            "Contexto Estratégico":   "#b05a20",
+        }
+
+        for cat in categories:
+            items = [i for i in EVENT_INTEL if i["category"] == cat]
+            cat_color = cat_colors.get(cat, MUTED)
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:12px;margin:24px 0 12px 0">
+              <div style="background:{cat_color};width:4px;height:24px;border-radius:2px"></div>
+              <div style="color:{NAVY};font-weight:700;font-size:1.05rem">{cat}</div>
+              <div style="color:{MUTED};font-size:0.8rem">— {len(items)} descobertas</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for item in items:
+                cov_color = RED if "zero" in item["online_coverage"] else GOLD
+                cov_label = "❌ Zero cobertura online" if "zero" in item["online_coverage"] else f"⚠ {item['online_coverage']}"
+                with st.expander(f"**{item['feature']}**   ·   {cov_label}"):
+                    c1, c2 = st.columns([3, 2])
+                    with c1:
+                        st.markdown(f"**O que foi confirmado:**")
+                        st.markdown(f"<div style='color:{MUTED};font-size:0.85rem;line-height:1.7;padding:8px 0'>{item['detail']}</div>", unsafe_allow_html=True)
+                    with c2:
+                        st.markdown(f"**Impacto no mercado:**")
+                        st.markdown(f"<div style='background:{BG2};border:1px solid {BORDER};border-left:3px solid {cat_color};padding:12px;border-radius:6px;color:{MUTED};font-size:0.82rem;line-height:1.6'>{item['market_impact']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='background:#fff4f4;border:1px solid {cov_color};border-radius:4px;padding:6px 10px;margin-top:8px;font-size:0.78rem;color:{cov_color};font-weight:600'>{cov_label}</div>", unsafe_allow_html=True)
+
+    # ── TAB 2: DUAL RADAR ─────────────────────────────────────────────────────
+    with tab2:
+        st.markdown(f"### Radar: Antes vs Depois do Evento")
+        st.markdown(f"<p style='color:{MUTED};font-size:0.85rem'>O radar <b>pré-evento</b> representa o que era possível saber sobre o Octalink usando apenas fontes públicas (site, blog, materiais online). O radar <b>pós-evento</b> representa o que foi confirmado in-person. A diferença de área — o <b>wingspan</b> — é a funcionalidade real que o Octalink não divulga.</p>", unsafe_allow_html=True)
+
+        ev_features = list(FEATURES.keys())
+        bling_scores = [FEATURES[f]["Bling"] for f in ev_features]
+        octa_post    = [FEATURES[f]["Octalink"] for f in ev_features]
+        octa_pre     = [FEATURES_PRE_EVENT[f]["Octalink_pre"] for f in ev_features]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown(f"<div style='text-align:center;color:{MUTED};font-weight:600;margin-bottom:8px'>PRÉ-EVENTO — Com base em fontes públicas</div>", unsafe_allow_html=True)
+            fig_pre = go.Figure()
+            fig_pre.add_trace(go.Scatterpolar(
+                r=bling_scores + [bling_scores[0]],
+                theta=ev_features + [ev_features[0]],
+                fill="toself", name="Bling",
+                line_color=BLUE, fillcolor="rgba(26,74,138,0.15)",
+            ))
+            fig_pre.add_trace(go.Scatterpolar(
+                r=octa_pre + [octa_pre[0]],
+                theta=ev_features + [ev_features[0]],
+                fill="toself", name="Octalink (pesquisa online)",
+                line_color=RED, fillcolor="rgba(176,48,48,0.12)",
+                line=dict(color=RED, width=2, dash="dot"),
+            ))
+            pre_score = round(sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_pre)) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+            fig_pre.update_layout(
+                **LAYOUT,
+                polar=dict(bgcolor=BG2, radialaxis=dict(visible=True, range=[0,10], color=MUTED, gridcolor=BORDER, tickfont=dict(size=9)), angularaxis=dict(color=MUTED, gridcolor=BORDER, tickfont=dict(size=9))),
+                showlegend=True,
+                legend=dict(font=dict(color=NAVY, size=10), bgcolor="rgba(0,0,0,0)", orientation="h", y=-0.15),
+                height=500, margin=dict(t=20, b=60, l=40, r=40),
+                title=dict(text=f"Score pré-evento: {pre_score}%", font=dict(color=RED, size=12), x=0.5),
+            )
+            st.plotly_chart(fig_pre, use_container_width=True)
+
+        with col2:
+            st.markdown(f"<div style='text-align:center;color:{MUTED};font-weight:600;margin-bottom:8px'>PÓS-EVENTO — Com dados confirmados in-person</div>", unsafe_allow_html=True)
+            fig_post = go.Figure()
+            fig_post.add_trace(go.Scatterpolar(
+                r=bling_scores + [bling_scores[0]],
+                theta=ev_features + [ev_features[0]],
+                fill="toself", name="Bling",
+                line_color=BLUE, fillcolor="rgba(26,74,138,0.15)",
+            ))
+            fig_post.add_trace(go.Scatterpolar(
+                r=octa_post + [octa_post[0]],
+                theta=ev_features + [ev_features[0]],
+                fill="toself", name="Octalink (confirmado in-person)",
+                line_color=GOLD, fillcolor="rgba(201,160,64,0.15)",
+            ))
+            post_score = round(sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_post)) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+            fig_post.update_layout(
+                **LAYOUT,
+                polar=dict(bgcolor=BG2, radialaxis=dict(visible=True, range=[0,10], color=MUTED, gridcolor=BORDER, tickfont=dict(size=9)), angularaxis=dict(color=MUTED, gridcolor=BORDER, tickfont=dict(size=9))),
+                showlegend=True,
+                legend=dict(font=dict(color=NAVY, size=10), bgcolor="rgba(0,0,0,0)", orientation="h", y=-0.15),
+                height=500, margin=dict(t=20, b=60, l=40, r=40),
+                title=dict(text=f"Score pós-evento: {post_score}%", font=dict(color=GOLD, size=12), x=0.5),
+            )
+            st.plotly_chart(fig_post, use_container_width=True)
+
+        # Delta bar chart
+        st.divider()
+        st.markdown("#### Diferença por Critério — O que o evento revelou")
+        st.markdown(f"<p style='color:{MUTED};font-size:0.85rem'>Cada barra mostra o quanto a pontuação do Octalink mudou em cada critério após a validação in-person. Barras positivas = funcionalidades que existem mas não estão documentadas online.</p>", unsafe_allow_html=True)
+
+        deltas = [post - pre for post, pre in zip(octa_post, octa_pre)]
+        delta_colors = [GREEN if d > 0 else (RED if d < 0 else MUTED) for d in deltas]
+
+        fig_delta = go.Figure(go.Bar(
+            x=ev_features, y=deltas,
+            marker_color=delta_colors,
+            hovertemplate="%{x}: %{y:+d} pts<extra></extra>",
+            text=[f"+{d}" if d > 0 else str(d) for d in deltas],
+            textposition="outside",
+            textfont=dict(size=10, color=NAVY),
+        ))
+        fig_delta.add_hline(y=0, line_color=BORDER, line_width=1)
+        fig_delta.update_layout(
+            **LAYOUT, height=360, showlegend=False,
+            yaxis=dict(title="Mudança de pontuação", gridcolor=BORDER, tickfont=dict(color=MUTED)),
+            xaxis=dict(tickangle=-30, tickfont=dict(size=9, color=NAVY)),
+            margin=dict(t=40, b=100, l=10, r=10),
+        )
+        st.plotly_chart(fig_delta, use_container_width=True)
+
+        # Wingspan metric
+        pre_area  = sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_pre))
+        post_area = sum(o * FEATURES[f]["weight"] for f, o in zip(ev_features, octa_post))
+        wingspan  = round((post_area - pre_area) / pre_area * 100, 1)
+        total_w_ev = sum(FEATURES[f]["weight"] for f in ev_features)
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Score Octalink pré-evento",  f"{round(pre_area/total_w_ev*10)}%",  "Baseado em fontes públicas")
+        c2.metric("Score Octalink pós-evento",  f"{round(post_area/total_w_ev*10)}%", "Confirmado in-person")
+        c3.metric("Wingspan — expansão real",   f"+{wingspan}%",   "Funcionalidade não divulgada")
+        c4.metric("Critérios que mudaram",       f"{sum(1 for d in deltas if d != 0)}/{len(ev_features)}", "Critérios com nova pontuação")
+
+    # ── TAB 3: COVERAGE ANALYSIS ─────────────────────────────────────────────
+    with tab3:
+        st.markdown("### Análise de Cobertura Online")
+        st.markdown(f"<p style='color:{MUTED};font-size:0.85rem'>O Octalink tem uma lacuna significativa entre o que o sistema faz e o que está documentado publicamente. Esta análise quantifica essa lacuna e contextualiza o risco que ela representa para decisões baseadas em pesquisa online.</p>", unsafe_allow_html=True)
+
+        # Coverage breakdown chart
+        zero_count    = sum(1 for i in EVENT_INTEL if "zero" in i["online_coverage"])
+        partial_count = len(EVENT_INTEL) - zero_count
+
+        fig_cov = go.Figure(go.Pie(
+            labels=["Zero cobertura online", "Cobertura parcial / superficial"],
+            values=[zero_count, partial_count],
+            marker_colors=[RED, GOLD],
+            hole=0.5,
+            hovertemplate="%{label}: %{value} funcionalidades (%{percent})<extra></extra>",
+            textinfo="label+value",
+            textfont=dict(size=11),
+        ))
+        fig_cov.update_layout(**LAYOUT, height=300, showlegend=False, margin=dict(t=20,b=20,l=20,r=20))
+        st.plotly_chart(fig_cov, use_container_width=True)
+
+        st.divider()
+        st.markdown("#### Por que o Octalink não divulga essas funcionalidades?")
+        reasons = [
+            ("Estratégia de go-to-market via contadores", "O canal de vendas principal são escritórios de contabilidade, não o cliente final. As funcionalidades técnicas são apresentadas ao parceiro contador, não ao público geral. O site é uma vitrine de entrada — a profundidade do produto é apresentada em demos e eventos.", BLUE),
+            ("Produto em evolução acelerada", "Funcionalidades como a IA de parametrização contábil estão em beta. O módulo industrial foi adicionado mais recentemente (o ERP Aurora é o produto mais novo). Documentar funcionalidades em desenvolvimento aumenta o risco de promessas não cumpridas.", GOLD),
+            ("Posicionamento deliberadamente generalista no site", "O site apresenta o Octalink como plataforma de backoffice financeiro — não como ERP industrial. Isso é consistente com o fato de que indústria representa apenas 8% da base de clientes. O site reflete o mercado principal, não o escopo completo.", "#9b8ab5"),
+            ("Proteção de informação competitiva", "Funcionalidades como monitoramento de NF-e na SEFAZ, de-para de fornecedor e fator de conversão de unidades são diferenciais reais vs concorrentes como Bling e Omie. Documentar detalhadamente dá informação gratuita a concorrentes.", "#2a7a4a"),
+            ("Complexidade que afasta leads imaturos", "O Octalink não quer clientes que ainda não estão prontos para o produto (empresas abaixo de R$4M). O próprio CEO disse: 'O cara com R$250-400/mês não é o nosso cliente'. Documentar funcionalidades avançadas pode atrair o público errado.", "#b05a20"),
+        ]
+        for title, desc, color in reasons:
+            st.markdown(f"""
+            <div style="background:{BG2};border:1px solid {BORDER};border-left:4px solid {color};padding:14px 20px;border-radius:6px;margin-bottom:10px">
+              <div style="color:{NAVY};font-weight:700;font-size:0.9rem">{title}</div>
+              <div style="color:{MUTED};font-size:0.82rem;margin-top:6px;line-height:1.7">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.divider()
+        st.markdown("#### Implicação para Decisões de Compra")
+        pre_pct  = round(sum(FEATURES_PRE_EVENT[f]["Octalink_pre"] * FEATURES[f]["weight"] for f in ev_features) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+        post_pct = round(sum(FEATURES[f]["Octalink"] * FEATURES[f]["weight"] for f in ev_features) / sum(FEATURES[f]["weight"] for f in ev_features) * 10)
+        st.markdown(f"""
+        <div style="background:#fff8f0;border:1px solid {GOLD};border-left:5px solid {GOLD};padding:18px 22px;border-radius:6px">
+          <span style="color:#7a5010;font-weight:700">O que isso significa para quem avalia o Octalink com base em pesquisa online:</span><br/><br/>
+          <span style="color:{MUTED};font-size:0.85rem;line-height:1.8">
+          Uma análise baseada apenas no site, blog ou comparadores online do Octalink <b>subestima sistematicamente</b> as capacidades reais da plataforma.
+          A pontuação de aderência calculada antes do evento foi de <b style='color:{RED}'>{pre_pct}%</b>.
+          Após validação in-person, subiu para <b style='color:{GOLD}'>{post_pct}%</b> — uma expansão de <b>+{wingspan}%</b>.<br/><br/>
+          Isso não é um problema exclusivo do Octalink — é estrutural no mercado de ERP para PME brasileiro. Mas o gap do Octalink é particularmente grande porque a empresa cresceu 6 anos exclusivamente por indicação, sem investir em conteúdo ou documentação pública. O produto é mais profundo do que a comunicação sugere.<br/><br/>
+          <b>A recomendação de pedir uma demo antes de qualquer decisão não é formalidade — é metodologia.</b>
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ── PERFIL DAS EMPRESAS ───────────────────────────────────────────────────────
 elif page == "🏢  Perfil das Empresas":
